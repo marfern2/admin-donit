@@ -50,10 +50,22 @@ export const routes: Routes = [
       },
       {
         path: 'task-types',
-        loadComponent: () =>
-          import('./features/task-types/task-types.component').then(
-            (m) => m.TaskTypesComponent,
-          ),
+        children: [
+          {
+            path: '',
+            loadComponent: () =>
+              import('./features/task-types/task-types.component').then(
+                (m) => m.TaskTypesComponent,
+              ),
+          },
+          {
+            path: ':id',
+            loadComponent: () =>
+              import('./features/task-types/task-type-detail.component').then(
+                (m) => m.TaskTypeDetailComponent,
+              ),
+          },
+        ],
       },
     ],
   },
