@@ -1,0 +1,109 @@
+<div class="detail-container">
+  <div class="page-header">
+    <button mat-icon-button (click)="goBack()" aria-label="Volver a tareas">
+      <mat-icon>arrow_back</mat-icon>
+    </button>
+    <h1>Detalle de Tarea</h1>
+  </div>
+
+  @if (error()) {
+    <div class="error-banner">{{ error() }}</div>
+  }
+
+  @if (loading()) {
+    <div class="loading-container">
+      <mat-spinner diameter="40"></mat-spinner>
+    </div>
+  } @else if (task()) {
+    <div class="task-info">
+      <mat-card>
+        <mat-card-content>
+          <div class="info-grid">
+            <div class="info-item">
+              <span class="info-label">ID</span>
+              <span class="info-value">{{ task()!.id }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Título</span>
+              <span class="info-value">{{ task()!.titulo }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Descripción</span>
+              <span class="info-value">{{ formatDescripcion(task()!.descripcion) }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Fecha</span>
+              <span class="info-value">{{ formatFecha(task()!.fecha) }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Estado</span>
+              <span class="info-value">{{ formatStatus(task()!.completada) }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Urgencia</span>
+              <span class="info-value">{{ formatUrgencia(task()!.urgencia) }}</span>
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+
+    <div class="user-section">
+      <h2>Usuario</h2>
+      <mat-card>
+        <mat-card-content>
+          <div class="info-grid">
+            <div class="info-item">
+              <span class="info-label">ID</span>
+              <span class="info-value">{{ task()!.usuarioId }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Username</span>
+              <span class="info-value">{{ task()!.usuarioUsername }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Email</span>
+              <span class="info-value">{{ task()!.usuarioEmail }}</span>
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+
+    <div class="type-section">
+      <h2>Tipo de Tarea</h2>
+      <mat-card>
+        <mat-card-content>
+          <div class="info-grid">
+            <div class="info-item">
+              <span class="info-label">ID</span>
+              <span class="info-value">{{ task()!.tipoTareaId ?? '-' }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Nombre</span>
+              <span class="info-value">{{ formatTipo(task()!.tipoTareaNombre) }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Color</span>
+              <span class="info-value color-value">
+                @if (task()!.tipoTareaColor) {
+                  <span class="color-swatch" [style.background]="task()!.tipoTareaColor!"></span>
+                  {{ task()!.tipoTareaColor }}
+                } @else {
+                  -
+                }
+              </span>
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+
+    <div class="actions">
+      <button mat-raised-button color="primary" (click)="goBack()">
+        <mat-icon>arrow_back</mat-icon>
+        Volver a tareas
+      </button>
+    </div>
+  }
+</div>

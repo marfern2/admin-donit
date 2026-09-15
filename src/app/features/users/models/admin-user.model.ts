@@ -1,12 +1,4 @@
-export interface AdminPage<T> {
-  content: T[];
-  page: number;
-  size: number;
-  totalElements: number;
-  totalPages: number;
-  first: boolean;
-  last: boolean;
-}
+export type { AdminPage } from '../../../shared/models/admin-page.model';
 
 export interface AdminUserSummary {
   id: number;
