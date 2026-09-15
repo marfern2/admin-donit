@@ -1,0 +1,36 @@
+<mat-sidenav-container class="layout-container">
+  <mat-sidenav #sidenav mode="side" opened class="layout-sidenav">
+    <div class="sidenav-header">
+      <span class="brand">Donit Admin</span>
+    </div>
+    <mat-nav-list>
+      <a mat-list-item routerLink="/users" routerLinkActive="active-link">
+        <mat-icon matListItemIcon>people</mat-icon>
+        <span matListItemTitle>Usuarios</span>
+      </a>
+      <a mat-list-item routerLink="/tasks" routerLinkActive="active-link">
+        <mat-icon matListItemIcon>task_alt</mat-icon>
+        <span matListItemTitle>Tareas</span>
+      </a>
+      <a mat-list-item routerLink="/task-types" routerLinkActive="active-link">
+        <mat-icon matListItemIcon>category</mat-icon>
+        <span matListItemTitle>Tipos de tarea</span>
+      </a>
+    </mat-nav-list>
+  </mat-sidenav>
+
+  <mat-sidenav-content class="layout-content">
+    <mat-toolbar color="primary" class="layout-toolbar">
+      <span class="toolbar-title">Panel de Administración</span>
+      <span class="spacer"></span>
+      <span class="user-info">{{ authService.currentUser()?.email }}</span>
+      <button mat-icon-button (click)="authService.logout()" aria-label="Cerrar sesión">
+        <mat-icon>logout</mat-icon>
+      </button>
+    </mat-toolbar>
+
+    <div class="content-area">
+      <router-outlet />
+    </div>
+  </mat-sidenav-content>
+</mat-sidenav-container>
