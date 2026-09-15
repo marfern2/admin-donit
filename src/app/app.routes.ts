@@ -16,8 +16,20 @@ export const routes: Routes = [
       { path: '', redirectTo: 'users', pathMatch: 'full' },
       {
         path: 'users',
-        loadComponent: () =>
-          import('./features/users/users.component').then((m) => m.UsersComponent),
+        children: [
+          {
+            path: '',
+            loadComponent: () =>
+              import('./features/users/users.component').then((m) => m.UsersComponent),
+          },
+          {
+            path: ':id',
+            loadComponent: () =>
+              import('./features/users/user-detail.component').then(
+                (m) => m.UserDetailComponent,
+              ),
+          },
+        ],
       },
       {
         path: 'tasks',

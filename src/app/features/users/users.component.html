@@ -1,0 +1,96 @@
+<div class="users-container">
+  <div class="page-header">
+    <h1>Usuarios</h1>
+  </div>
+
+  <div class="controls">
+    <mat-form-field appearance="outline" class="search-field">
+      <mat-label>Buscar</mat-label>
+      <input matInput [formControl]="searchCtrl" placeholder="Nombre o email" />
+      <mat-icon matSuffix>search</mat-icon>
+    </mat-form-field>
+    @if (searchCtrl.value) {
+      <button mat-icon-button (click)="clearSearch()" aria-label="Limpiar búsqueda">
+        <mat-icon>close</mat-icon>
+      </button>
+    }
+  </div>
+
+  @if (error()) {
+    <div class="error-banner">{{ error() }}</div>
+  }
+
+  @if (loading() && !data()) {
+    <div class="loading-container">
+      <mat-spinner diameter="40"></mat-spinner>
+    </div>
+  } @else if (data()!.content.length === 0) {
+    <div class="empty-state">No se encontraron usuarios.</div>
+  } @else if (data()) {
+    <div class="table-container">
+      <table
+        mat-table
+        [dataSource]="data()!.content"
+        matSort
+        [matSortActive]="sortActive()"
+        [matSortDirection]="sortDirection()"
+        (matSortChange)="onSortChange($event)"
+      >
+        <ng-container matColumnDef="id">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>ID</th>
+          <td mat-cell *matCellDef="let user">{{ user.id }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="username">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Usuario</th>
+          <td mat-cell *matCellDef="let user">{{ user.username }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="email">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Email</th>
+          <td mat-cell *matCellDef="let user">{{ user.email }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="taskCount">
+          <th mat-header-cell *matHeaderCellDef>Tareas</th>
+          <td mat-cell *matCellDef="let user">{{ user.taskCount }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="taskTypeCount">
+          <th mat-header-cell *matHeaderCellDef>Tipos de tarea</th>
+          <td mat-cell *matCellDef="let user">{{ user.taskTypeCount }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="actions">
+          <th mat-header-cell *matHeaderCellDef></th>
+          <td mat-cell *matCellDef="let user">
+            <button
+              mat-icon-button
+              (click)="viewUser(user.id); $event.stopPropagation()"
+              aria-label="Ver detalle"
+            >
+              <mat-icon>visibility</mat-icon>
+            </button>
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr
+          mat-row
+          *matRowDef="let row; columns: displayedColumns"
+          class="clickable-row"
+          (click)="viewUser(row.id)"
+        ></tr>
+      </table>
+
+      <mat-paginator
+        [length]="data()!.totalElements"
+        [pageSize]="size()"
+        [pageIndex]="page()"
+        [pageSizeOptions]="[10, 20, 50]"
+        (page)="onPageChange($event)"
+        showFirstLastButtons
+      ></mat-paginator>
+    </div>
+  }
+</div>
