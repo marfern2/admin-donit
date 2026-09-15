@@ -2,7 +2,7 @@ import { Component, OnInit, signal, inject, DestroyRef } from '@angular/core';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { debounceTime, distinctUntilChanged } from 'rxjs';
+import { debounceTime, distinctUntilChanged, forkJoin } from 'rxjs';
 import { MatTableModule } from '@angular/material/table';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { MatSortModule, Sort } from '@angular/material/sort';
@@ -13,8 +13,10 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { AdminTasksService } from './services/admin-tasks.service';
+import { AdminTaskTypesService } from '../task-types/services/admin-task-types.service';
 import { AdminPage } from '../../shared/models/admin-page.model';
 import { AdminTaskSummary } from './models/admin-task.model';
+import { AdminTaskTypeSummary } from '../task-types/models/admin-task-type.model';
 
 @Component({
   selector: 'app-tasks',
@@ -36,6 +38,7 @@ import { AdminTaskSummary } from './models/admin-task.model';
 })
 export class TasksComponent implements OnInit {
   private readonly adminTasksService = inject(AdminTasksService);
+  private readonly adminTaskTypesService = inject(AdminTaskTypesService);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
 
@@ -53,6 +56,10 @@ export class TasksComponent implements OnInit {
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
 
+  readonly taskTypes = signal<AdminTaskTypeSummary[]>([]);
+  readonly loadingTypes = signal(false);
+  readonly typesError = signal<string | null>(null);
+
   readonly displayedColumns = ['id', 'titulo', 'usuarioUsername', 'fecha', 'completada', 'urgencia', 'tipoTareaNombre', 'actions'];
 
   ngOnInit(): void {
@@ -63,7 +70,62 @@ export class TasksComponent implements OnInit {
         this.loadData();
       });
 
+    this.loadTaskTypes();
     this.loadData();
+  }
+
+  private loadTaskTypes(): void {
+    this.loadingTypes.set(true);
+    this.typesError.set(null);
+
+    this.adminTaskTypesService
+      .getTaskTypes({ page: 0, size: 100, sort: 'nombre,asc' })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (firstPage) => {
+          if (firstPage.totalPages <= 1) {
+            this.taskTypes.set(firstPage.content);
+            this.loadingTypes.set(false);
+            return;
+          }
+
+          const remainingPages: number[] = [];
+          for (let p = 1; p < firstPage.totalPages && p < 10; p++) {
+            remainingPages.push(p);
+          }
+
+          if (remainingPages.length > 0) {
+            const requests = remainingPages.map((p) =>
+              this.adminTaskTypesService.getTaskTypes({ page: p, size: 100, sort: 'nombre,asc' })
+            );
+
+            forkJoin(requests)
+              .pipe(takeUntilDestroyed(this.destroyRef))
+              .subscribe({
+                next: (pages) => {
+                  const allContent = [
+                    ...firstPage.content,
+                    ...pages.flatMap((page) => page.content),
+                  ];
+                  this.taskTypes.set(allContent);
+                  this.loadingTypes.set(false);
+                },
+                error: () => {
+                  this.taskTypes.set(firstPage.content);
+                  this.typesError.set('No se pudieron cargar todos los tipos de tarea.');
+                  this.loadingTypes.set(false);
+                },
+              });
+          } else {
+            this.taskTypes.set(firstPage.content);
+            this.loadingTypes.set(false);
+          }
+        },
+        error: () => {
+          this.typesError.set('No se pudieron cargar los tipos de tarea.');
+          this.loadingTypes.set(false);
+        },
+      });
   }
 
   loadData(): void {

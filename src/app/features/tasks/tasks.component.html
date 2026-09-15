@@ -30,8 +30,21 @@
     </mat-form-field>
 
     <mat-form-field appearance="outline" class="filter-field">
-      <mat-label>ID Tipo</mat-label>
-      <input matInput type="number" [formControl]="taskTypeIdCtrl" placeholder="ID" />
+      <mat-label>Tipo de tarea</mat-label>
+      <mat-select [formControl]="taskTypeIdCtrl" (selectionChange)="onFilterChange()" [disabled]="loadingTypes()">
+        <mat-option [value]="null">Todos los tipos</mat-option>
+        @for (type of taskTypes(); track type.id) {
+          <mat-option [value]="type.id">
+            @if (type.color) {
+              <span class="type-color-dot" [style.background]="type.color"></span>
+            }
+            {{ type.nombre }}
+          </mat-option>
+        }
+      </mat-select>
+      @if (typesError()) {
+        <mat-hint class="types-error">{{ typesError() }}</mat-hint>
+      }
     </mat-form-field>
 
     @if (hasActiveFilters()) {
