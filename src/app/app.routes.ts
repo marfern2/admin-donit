@@ -4,6 +4,7 @@ import { authGuard } from './core/auth/auth.guard';
 export const routes: Routes = [
   {
     path: 'login',
+    title: 'Iniciar sesión',
     loadComponent: () =>
       import('./features/login/login.component').then((m) => m.LoginComponent),
   },
@@ -16,6 +17,7 @@ export const routes: Routes = [
       { path: '', redirectTo: 'users', pathMatch: 'full' },
       {
         path: 'users',
+        title: 'Usuarios',
         children: [
           {
             path: '',
@@ -24,6 +26,7 @@ export const routes: Routes = [
           },
           {
             path: ':id',
+            title: 'Detalle de usuario',
             loadComponent: () =>
               import('./features/users/user-detail.component').then(
                 (m) => m.UserDetailComponent,
@@ -33,6 +36,7 @@ export const routes: Routes = [
       },
       {
         path: 'tasks',
+        title: 'Tareas',
         children: [
           {
             path: '',
@@ -41,6 +45,7 @@ export const routes: Routes = [
           },
           {
             path: ':id',
+            title: 'Detalle de tarea',
             loadComponent: () =>
               import('./features/tasks/task-detail.component').then(
                 (m) => m.TaskDetailComponent,
@@ -50,6 +55,7 @@ export const routes: Routes = [
       },
       {
         path: 'task-types',
+        title: 'Tipos de tarea',
         children: [
           {
             path: '',
@@ -60,6 +66,7 @@ export const routes: Routes = [
           },
           {
             path: ':id',
+            title: 'Detalle de tipo',
             loadComponent: () =>
               import('./features/task-types/task-type-detail.component').then(
                 (m) => m.TaskTypeDetailComponent,

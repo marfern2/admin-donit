@@ -1,1 +1,11 @@
-<router-outlet />
+@if (authService.initialized()) {
+  <router-outlet />
+} @else {
+  <div class="bootstrap-screen">
+    <div class="bootstrap-content">
+      <span class="bootstrap-brand">Donit Admin</span>
+      <mat-spinner diameter="40"></mat-spinner>
+      <span class="bootstrap-text">Restaurando sesión...</span>
+    </div>
+  </div>
+}

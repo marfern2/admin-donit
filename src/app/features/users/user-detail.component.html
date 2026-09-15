@@ -7,7 +7,7 @@
   </div>
 
   @if (userError()) {
-    <div class="error-banner">{{ userError() }}</div>
+    <div class="error-banner" role="alert">{{ userError() }}</div>
   }
 
   @if (userLoading()) {
@@ -65,7 +65,7 @@
       <h2>Tareas</h2>
 
       @if (tasksError()) {
-        <div class="error-banner">{{ tasksError() }}</div>
+        <div class="error-banner" role="alert">{{ tasksError() }}</div>
       }
 
       @if (tasksLoading()) {
