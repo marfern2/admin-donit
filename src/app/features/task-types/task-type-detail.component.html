@@ -7,7 +7,7 @@
   </div>
 
   @if (error()) {
-    <div class="error-banner">{{ error() }}</div>
+    <div class="error-banner" role="alert">{{ error() }}</div>
   }
 
   @if (loading()) {

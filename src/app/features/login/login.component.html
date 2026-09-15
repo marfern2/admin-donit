@@ -9,7 +9,14 @@
       <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
         <mat-form-field appearance="outline" class="full-width">
           <mat-label>Email</mat-label>
-          <input matInput formControlName="email" type="email" autocomplete="email" />
+          <input
+            #emailInput
+            matInput
+            formControlName="email"
+            type="email"
+            autocomplete="email"
+            placeholder="tu@email.com"
+          />
           @if (loginForm.get('email')?.hasError('required') && loginForm.get('email')?.touched) {
             <mat-error>El email es obligatorio</mat-error>
           }
@@ -31,7 +38,8 @@
             matSuffix
             type="button"
             (click)="hidePassword.set(!hidePassword())"
-            aria-label="Mostrar contraseña"
+            [attr.aria-label]="hidePassword() ? 'Mostrar contraseña' : 'Ocultar contraseña'"
+            [attr.aria-pressed]="!hidePassword()"
           >
             <mat-icon>{{ hidePassword() ? 'visibility_off' : 'visibility' }}</mat-icon>
           </button>
@@ -41,7 +49,7 @@
         </mat-form-field>
 
         @if (errorMessage()) {
-          <div class="error-banner">{{ errorMessage() }}</div>
+          <div class="error-banner" role="alert">{{ errorMessage() }}</div>
         }
 
         <button

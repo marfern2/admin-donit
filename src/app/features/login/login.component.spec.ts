@@ -63,4 +63,35 @@ describe('LoginComponent', () => {
     component.loginForm.setValue({ email: 'admin@test.com', password: 'password123' });
     expect(component.loginForm.valid).toBeTruthy();
   });
+
+  it('should have email input with autocomplete email', () => {
+    const el: HTMLElement = fixture.nativeElement;
+    const emailInput = el.querySelector('input[formcontrolname="email"]') as HTMLInputElement;
+    expect(emailInput).toBeTruthy();
+    expect(emailInput.getAttribute('autocomplete')).toBe('email');
+  });
+
+  it('should have password input with autocomplete current-password', () => {
+    const el: HTMLElement = fixture.nativeElement;
+    const passwordInput = el.querySelector('input[formcontrolname="password"]') as HTMLInputElement;
+    expect(passwordInput).toBeTruthy();
+    expect(passwordInput.getAttribute('autocomplete')).toBe('current-password');
+  });
+
+  it('should have role alert on error banner', async () => {
+    component.errorMessage.set('Test error');
+    fixture.detectChanges();
+    await fixture.whenStable();
+    const el: HTMLElement = fixture.nativeElement;
+    const alert = el.querySelector('[role="alert"]');
+    expect(alert).toBeTruthy();
+  });
+
+  it('should disable submit button during loading', () => {
+    component.loading.set(true);
+    fixture.detectChanges();
+    const el: HTMLElement = fixture.nativeElement;
+    const button = el.querySelector('button[type="submit"]') as HTMLButtonElement;
+    expect(button.disabled).toBeTruthy();
+  });
 });

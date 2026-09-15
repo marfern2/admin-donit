@@ -6,7 +6,7 @@
   <div class="controls">
     <mat-form-field appearance="outline" class="search-field">
       <mat-label>Buscar</mat-label>
-      <input matInput [formControl]="searchCtrl" placeholder="Nombre o descripción" />
+      <input matInput [formControl]="searchCtrl" placeholder="Nombre o descripción" aria-label="Buscar tipos de tarea" />
       <mat-icon matSuffix>search</mat-icon>
     </mat-form-field>
     @if (searchCtrl.value) {
@@ -17,7 +17,7 @@
   </div>
 
   @if (error()) {
-    <div class="error-banner">{{ error() }}</div>
+    <div class="error-banner" role="alert">{{ error() }}</div>
   }
 
   @if (loading() && !data()) {

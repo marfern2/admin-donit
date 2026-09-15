@@ -1,4 +1,4 @@
-import { Component, signal } from '@angular/core';
+import { Component, signal, OnInit, AfterViewInit, ElementRef, ViewChild } from '@angular/core';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -24,7 +24,9 @@ import { AdminAuthService } from '../../core/auth/auth.service';
   templateUrl: './login.component.html',
   styleUrl: './login.component.scss',
 })
-export class LoginComponent {
+export class LoginComponent implements AfterViewInit {
+  @ViewChild('emailInput') emailInput!: ElementRef<HTMLInputElement>;
+
   readonly loginForm;
   readonly loading = signal(false);
   readonly errorMessage = signal<string | null>(null);
@@ -39,6 +41,10 @@ export class LoginComponent {
       email: ['', [Validators.required, Validators.email]],
       password: ['', [Validators.required]],
     });
+  }
+
+  ngAfterViewInit(): void {
+    setTimeout(() => this.emailInput?.nativeElement?.focus(), 0);
   }
 
   onSubmit(): void {

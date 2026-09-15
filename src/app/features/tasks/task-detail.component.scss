@@ -1,19 +1,7 @@
+@use '../../shared/shared';
+
 .detail-container {
   max-width: 1200px;
-}
-
-.page-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 24px;
-
-  h1 {
-    margin: 0;
-    font-size: 24px;
-    font-weight: 500;
-    color: #333;
-  }
 }
 
 .task-info,
@@ -29,60 +17,6 @@
   }
 }
 
-.info-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 24px;
-}
-
-.info-item {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.info-label {
-  font-size: 12px;
-  color: #666;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.info-value {
-  font-size: 16px;
-  color: #333;
-}
-
-.color-value {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.color-swatch {
-  display: inline-block;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  border: 1px solid #ccc;
-}
-
 .actions {
   margin-top: 24px;
-}
-
-.loading-container {
-  display: flex;
-  justify-content: center;
-  padding: 48px 0;
-}
-
-.error-banner {
-  background: #fdecea;
-  color: #611a15;
-  border: 1px solid #f5c6cb;
-  border-radius: 4px;
-  padding: 12px 16px;
-  margin-bottom: 16px;
-  font-size: 14px;
 }
