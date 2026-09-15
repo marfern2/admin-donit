@@ -11,7 +11,8 @@ describe('TasksComponent', () => {
   let fixture: ComponentFixture<TasksComponent>;
   let httpMock: HttpTestingController;
 
-  const apiUrl = `${environment.apiUrl}/api/admin/tasks`;
+  const tasksApiUrl = `${environment.apiUrl}/api/admin/tasks`;
+  const taskTypesApiUrl = `${environment.apiUrl}/api/admin/task-types`;
 
   const mockPageResponse = {
     content: [
@@ -52,10 +53,51 @@ describe('TasksComponent', () => {
     last: true,
   };
 
+  const mockTaskTypesPageResponse = {
+    content: [
+      {
+        id: 1,
+        nombre: 'Trabajo',
+        descripcion: 'Tareas de trabajo',
+        color: '#FF0000',
+        usuarioId: 1,
+        usuarioUsername: 'admin',
+        taskCount: 5,
+      },
+      {
+        id: 2,
+        nombre: 'Personal',
+        descripcion: null,
+        color: null,
+        usuarioId: 2,
+        usuarioUsername: 'user1',
+        taskCount: 3,
+      },
+    ],
+    page: 0,
+    size: 100,
+    totalElements: 2,
+    totalPages: 1,
+    first: true,
+    last: true,
+  };
+
   function flushTasksRequest(response = mockPageResponse) {
-    const req = httpMock.expectOne((r) => r.url === apiUrl);
+    const req = httpMock.expectOne((r) => r.url === tasksApiUrl);
     req.flush(response);
     return req;
+  }
+
+  function flushTaskTypesRequest(response = mockTaskTypesPageResponse) {
+    const req = httpMock.expectOne((r) => r.url === taskTypesApiUrl);
+    req.flush(response);
+    return req;
+  }
+
+  function flushAllOnInit() {
+    fixture.detectChanges();
+    flushTaskTypesRequest();
+    flushTasksRequest();
   }
 
   beforeEach(async () => {
@@ -74,23 +116,156 @@ describe('TasksComponent', () => {
   });
 
   it('should create', () => {
-    fixture.detectChanges();
-    flushTasksRequest();
+    flushAllOnInit();
     expect(component).toBeTruthy();
   });
 
   it('should load tasks on init with default sort', () => {
-    fixture.detectChanges();
-    const req = flushTasksRequest();
-    expect(req.request.params.get('page')).toBe('0');
-    expect(req.request.params.get('size')).toBe('20');
-    expect(req.request.params.get('sort')).toBe('fecha,desc');
+    flushAllOnInit();
     expect(component.data()?.content.length).toBe(2);
   });
 
-  it('should serialize completed=true correctly', () => {
+  it('should load task types on init', () => {
+    flushAllOnInit();
+    expect(component.taskTypes().length).toBe(2);
+    expect(component.taskTypes()[0].nombre).toBe('Trabajo');
+    expect(component.taskTypes()[1].nombre).toBe('Personal');
+  });
+
+  it('should request task types with nombre,asc sort', () => {
     fixture.detectChanges();
+    const req = flushTaskTypesRequest();
+    expect(req.request.params.get('sort')).toBe('nombre,asc');
+    expect(req.request.params.get('size')).toBe('100');
+    expect(req.request.params.get('page')).toBe('0');
     flushTasksRequest();
+  });
+
+  it('should select task type sends correct taskTypeId', () => {
+    flushAllOnInit();
+
+    component.taskTypeIdCtrl.setValue(1);
+    component.onFilterChange();
+
+    const req = flushTasksRequest();
+    expect(req.request.params.get('taskTypeId')).toBe('1');
+  });
+
+  it('should omit taskTypeId when "Todos los tipos" is selected', () => {
+    flushAllOnInit();
+
+    component.taskTypeIdCtrl.setValue(null);
+    component.onFilterChange();
+
+    const req = flushTasksRequest();
+    expect(req.request.params.has('taskTypeId')).toBeFalsy();
+  });
+
+  it('should reset page to 0 when task type changes', () => {
+    flushAllOnInit();
+
+    component.page.set(3);
+    component.taskTypeIdCtrl.setValue(1);
+    component.onFilterChange();
+
+    expect(component.page()).toBe(0);
+    flushTasksRequest();
+  });
+
+  it('should clear taskTypeId in clearFilters', () => {
+    flushAllOnInit();
+
+    component.taskTypeIdCtrl.setValue(1);
+    component.clearFilters();
+
+    expect(component.taskTypeIdCtrl.value).toBeNull();
+    expect(component.page()).toBe(0);
+
+    flushTasksRequest();
+  });
+
+  it('should not break tasks loading when task types fail', () => {
+    fixture.detectChanges();
+    const typesReq = httpMock.expectOne((r) => r.url === taskTypesApiUrl);
+    typesReq.flush('Error', { status: 500, statusText: 'Server Error' });
+
+    expect(component.typesError()).toBe('No se pudieron cargar los tipos de tarea.');
+    expect(component.loadingTypes()).toBeFalsy();
+
+    flushTasksRequest();
+    expect(component.data()).toBeTruthy();
+    expect(component.data()?.content.length).toBe(2);
+  });
+
+  it('should load remaining pages when totalPages > 1', () => {
+    fixture.detectChanges();
+
+    const firstPageTypesResponse = {
+      content: [
+        { id: 1, nombre: 'Trabajo', descripcion: null, color: '#FF0000', usuarioId: 1, usuarioUsername: 'admin', taskCount: 5 },
+      ],
+      page: 0,
+      size: 100,
+      totalElements: 150,
+      totalPages: 2,
+      first: true,
+      last: false,
+    };
+
+    const typesReq1 = httpMock.expectOne((r) => r.url === taskTypesApiUrl);
+    typesReq1.flush(firstPageTypesResponse);
+
+    const typesReq2 = httpMock.expectOne((r) => r.url === taskTypesApiUrl);
+    typesReq2.flush({
+      content: [
+        { id: 2, nombre: 'Personal', descripcion: null, color: null, usuarioId: 2, usuarioUsername: 'user1', taskCount: 3 },
+      ],
+      page: 1,
+      size: 100,
+      totalElements: 150,
+      totalPages: 2,
+      first: false,
+      last: true,
+    });
+
+    flushTasksRequest();
+
+    expect(component.taskTypes().length).toBe(2);
+    expect(component.taskTypes()[0].nombre).toBe('Trabajo');
+    expect(component.taskTypes()[1].nombre).toBe('Personal');
+    expect(component.loadingTypes()).toBeFalsy();
+  });
+
+  it('should handle error on remaining pages gracefully', () => {
+    fixture.detectChanges();
+
+    const firstPageTypesResponse = {
+      content: [
+        { id: 1, nombre: 'Trabajo', descripcion: null, color: '#FF0000', usuarioId: 1, usuarioUsername: 'admin', taskCount: 5 },
+      ],
+      page: 0,
+      size: 100,
+      totalElements: 150,
+      totalPages: 2,
+      first: true,
+      last: false,
+    };
+
+    const typesReq1 = httpMock.expectOne((r) => r.url === taskTypesApiUrl);
+    typesReq1.flush(firstPageTypesResponse);
+
+    const typesReq2 = httpMock.expectOne((r) => r.url === taskTypesApiUrl);
+    typesReq2.flush('Error', { status: 500, statusText: 'Server Error' });
+
+    flushTasksRequest();
+
+    expect(component.taskTypes().length).toBe(1);
+    expect(component.typesError()).toBe('No se pudieron cargar todos los tipos de tarea.');
+    expect(component.loadingTypes()).toBeFalsy();
+  });
+
+  it('should serialize completed=true correctly', () => {
+    flushAllOnInit();
 
     component.completedCtrl.setValue('true');
     component.onFilterChange();
@@ -100,8 +275,7 @@ describe('TasksComponent', () => {
   });
 
   it('should serialize completed=false correctly', () => {
-    fixture.detectChanges();
-    flushTasksRequest();
+    flushAllOnInit();
 
     component.completedCtrl.setValue('false');
     component.onFilterChange();
@@ -111,8 +285,7 @@ describe('TasksComponent', () => {
   });
 
   it('should omit completed param when set to all', () => {
-    fixture.detectChanges();
-    flushTasksRequest();
+    flushAllOnInit();
 
     component.completedCtrl.setValue('all');
     component.onFilterChange();
@@ -122,8 +295,7 @@ describe('TasksComponent', () => {
   });
 
   it('should reset page on filter change', () => {
-    fixture.detectChanges();
-    flushTasksRequest();
+    flushAllOnInit();
 
     component.page.set(3);
     component.onFilterChange();
@@ -133,8 +305,7 @@ describe('TasksComponent', () => {
   });
 
   it('should send userId filter', () => {
-    fixture.detectChanges();
-    flushTasksRequest();
+    flushAllOnInit();
 
     component.userIdCtrl.setValue(5);
     component.onFilterChange();
@@ -144,8 +315,7 @@ describe('TasksComponent', () => {
   });
 
   it('should send urgency filter', () => {
-    fixture.detectChanges();
-    flushTasksRequest();
+    flushAllOnInit();
 
     component.urgencyCtrl.setValue('alta');
     component.onFilterChange();
@@ -155,8 +325,7 @@ describe('TasksComponent', () => {
   });
 
   it('should send taskTypeId filter', () => {
-    fixture.detectChanges();
-    flushTasksRequest();
+    flushAllOnInit();
 
     component.taskTypeIdCtrl.setValue(3);
     component.onFilterChange();
@@ -166,8 +335,7 @@ describe('TasksComponent', () => {
   });
 
   it('should clear all filters', () => {
-    fixture.detectChanges();
-    flushTasksRequest();
+    flushAllOnInit();
 
     component.searchCtrl.setValue('test');
     component.userIdCtrl.setValue(5);
@@ -188,8 +356,7 @@ describe('TasksComponent', () => {
   });
 
   it('should handle pagination', () => {
-    fixture.detectChanges();
-    flushTasksRequest();
+    flushAllOnInit();
 
     component.onPageChange({ pageIndex: 1, pageSize: 10, length: 50 });
 
@@ -202,8 +369,7 @@ describe('TasksComponent', () => {
   });
 
   it('should handle sort on sortable columns', () => {
-    fixture.detectChanges();
-    flushTasksRequest();
+    flushAllOnInit();
 
     component.onSortChange({ active: 'titulo', direction: 'asc' });
 
@@ -216,8 +382,7 @@ describe('TasksComponent', () => {
   });
 
   it('should reset sort to default for non-sortable columns', () => {
-    fixture.detectChanges();
-    flushTasksRequest();
+    flushAllOnInit();
 
     component.onSortChange({ active: 'usuarioUsername', direction: 'asc' });
 
@@ -228,8 +393,7 @@ describe('TasksComponent', () => {
   });
 
   it('should reset sort to default when direction is empty', () => {
-    fixture.detectChanges();
-    flushTasksRequest();
+    flushAllOnInit();
 
     component.onSortChange({ active: 'titulo', direction: '' });
 
@@ -241,7 +405,9 @@ describe('TasksComponent', () => {
 
   it('should show error on failure', () => {
     fixture.detectChanges();
-    const req = httpMock.expectOne((r) => r.url === apiUrl);
+    flushTaskTypesRequest();
+
+    const req = httpMock.expectOne((r) => r.url === tasksApiUrl);
     req.flush('Error', { status: 500, statusText: 'Server Error' });
 
     expect(component.error()).toBe('No se pudieron cargar las tareas.');
