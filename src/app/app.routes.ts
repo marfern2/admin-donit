@@ -33,8 +33,20 @@ export const routes: Routes = [
       },
       {
         path: 'tasks',
-        loadComponent: () =>
-          import('./features/tasks/tasks.component').then((m) => m.TasksComponent),
+        children: [
+          {
+            path: '',
+            loadComponent: () =>
+              import('./features/tasks/tasks.component').then((m) => m.TasksComponent),
+          },
+          {
+            path: ':id',
+            loadComponent: () =>
+              import('./features/tasks/task-detail.component').then(
+                (m) => m.TaskDetailComponent,
+              ),
+          },
+        ],
       },
       {
         path: 'task-types',

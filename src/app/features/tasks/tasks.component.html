@@ -1,0 +1,131 @@
+<div class="tasks-container">
+  <div class="page-header">
+    <h1>Tareas</h1>
+  </div>
+
+  <div class="controls">
+    <mat-form-field appearance="outline" class="search-field">
+      <mat-label>Buscar</mat-label>
+      <input matInput [formControl]="searchCtrl" placeholder="Título o descripción" />
+      <mat-icon matSuffix>search</mat-icon>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="filter-field">
+      <mat-label>ID Usuario</mat-label>
+      <input matInput type="number" [formControl]="userIdCtrl" placeholder="ID" />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="filter-field">
+      <mat-label>Estado</mat-label>
+      <mat-select [formControl]="completedCtrl" (selectionChange)="onFilterChange()">
+        <mat-option value="all">Todas</mat-option>
+        <mat-option value="true">Completadas</mat-option>
+        <mat-option value="false">Pendientes</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="filter-field">
+      <mat-label>Urgencia</mat-label>
+      <input matInput [formControl]="urgencyCtrl" placeholder="Urgencia" />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="filter-field">
+      <mat-label>ID Tipo</mat-label>
+      <input matInput type="number" [formControl]="taskTypeIdCtrl" placeholder="ID" />
+    </mat-form-field>
+
+    @if (hasActiveFilters()) {
+      <button mat-icon-button (click)="clearFilters()" aria-label="Limpiar filtros">
+        <mat-icon>close</mat-icon>
+      </button>
+    }
+  </div>
+
+  @if (error()) {
+    <div class="error-banner">{{ error() }}</div>
+  }
+
+  @if (loading() && !data()) {
+    <div class="loading-container">
+      <mat-spinner diameter="40"></mat-spinner>
+    </div>
+  } @else if (data()!.content.length === 0) {
+    <div class="empty-state">No se encontraron tareas.</div>
+  } @else if (data()) {
+    <div class="table-container">
+      <table
+        mat-table
+        [dataSource]="data()!.content"
+        matSort
+        [matSortActive]="sortActive()"
+        [matSortDirection]="sortDirection()"
+        (matSortChange)="onSortChange($event)"
+      >
+        <ng-container matColumnDef="id">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>ID</th>
+          <td mat-cell *matCellDef="let task">{{ task.id }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="titulo">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Título</th>
+          <td mat-cell *matCellDef="let task">{{ task.titulo }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="usuarioUsername">
+          <th mat-header-cell *matHeaderCellDef>Usuario</th>
+          <td mat-cell *matCellDef="let task">{{ task.usuarioUsername }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="fecha">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Fecha</th>
+          <td mat-cell *matCellDef="let task">{{ formatFecha(task.fecha) }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="completada">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Estado</th>
+          <td mat-cell *matCellDef="let task">{{ formatStatus(task.completada) }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="urgencia">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Urgencia</th>
+          <td mat-cell *matCellDef="let task">{{ formatUrgencia(task.urgencia) }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="tipoTareaNombre">
+          <th mat-header-cell *matHeaderCellDef>Tipo</th>
+          <td mat-cell *matCellDef="let task">{{ formatTipo(task.tipoTareaNombre) }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="actions">
+          <th mat-header-cell *matHeaderCellDef></th>
+          <td mat-cell *matCellDef="let task">
+            <button
+              mat-icon-button
+              (click)="viewTask(task.id); $event.stopPropagation()"
+              aria-label="Ver detalle"
+            >
+              <mat-icon>visibility</mat-icon>
+            </button>
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr
+          mat-row
+          *matRowDef="let row; columns: displayedColumns"
+          class="clickable-row"
+          (click)="viewTask(row.id)"
+        ></tr>
+      </table>
+
+      <mat-paginator
+        [length]="data()!.totalElements"
+        [pageSize]="size()"
+        [pageIndex]="page()"
+        [pageSizeOptions]="[10, 20, 50]"
+        (page)="onPageChange($event)"
+        showFirstLastButtons
+      ></mat-paginator>
+    </div>
+  }
+</div>
