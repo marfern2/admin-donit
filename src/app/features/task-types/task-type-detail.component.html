@@ -1,0 +1,85 @@
+<div class="detail-container">
+  <div class="page-header">
+    <button mat-icon-button (click)="goBack()" aria-label="Volver a tipos de tarea">
+      <mat-icon>arrow_back</mat-icon>
+    </button>
+    <h1>Detalle de Tipo de Tarea</h1>
+  </div>
+
+  @if (error()) {
+    <div class="error-banner">{{ error() }}</div>
+  }
+
+  @if (loading()) {
+    <div class="loading-container">
+      <mat-spinner diameter="40"></mat-spinner>
+    </div>
+  } @else if (taskType()) {
+    <div class="type-info">
+      <mat-card>
+        <mat-card-content>
+          <div class="info-grid">
+            <div class="info-item">
+              <span class="info-label">ID</span>
+              <span class="info-value">{{ taskType()!.id }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Nombre</span>
+              <span class="info-value">{{ taskType()!.nombre }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Descripción</span>
+              <span class="info-value">{{ formatDescripcion(taskType()!.descripcion) }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Color</span>
+              <span class="info-value">
+                @if (taskType()!.color) {
+                  <span class="color-value">
+                    <span class="color-swatch" [style.background]="taskType()!.color!"></span>
+                    {{ taskType()!.color }}
+                  </span>
+                } @else {
+                  -
+                }
+              </span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Nº tareas</span>
+              <span class="info-value">{{ taskType()!.taskCount }}</span>
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+
+    <div class="user-section">
+      <h2>Usuario propietario</h2>
+      <mat-card>
+        <mat-card-content>
+          <div class="info-grid">
+            <div class="info-item">
+              <span class="info-label">ID</span>
+              <span class="info-value">{{ taskType()!.usuarioId }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Username</span>
+              <span class="info-value">{{ taskType()!.usuarioUsername }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Email</span>
+              <span class="info-value">{{ taskType()!.usuarioEmail }}</span>
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+
+    <div class="actions">
+      <button mat-raised-button color="primary" (click)="goBack()">
+        <mat-icon>arrow_back</mat-icon>
+        Volver a tipos de tarea
+      </button>
+    </div>
+  }
+</div>
