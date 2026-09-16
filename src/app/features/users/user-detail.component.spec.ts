@@ -1,8 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting, HttpTestingController } from '@angular/common/http/testing';
-import { provideRouter } from '@angular/router';
-import { ActivatedRoute } from '@angular/router';
+import { provideRouter, ActivatedRoute } from '@angular/router';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { UserDetailComponent } from './user-detail.component';
 import { environment } from '../../../environments/environment';
@@ -57,13 +56,36 @@ describe('UserDetailComponent', () => {
     last: true,
   };
 
-  const mockActivatedRoute = {
-    snapshot: {
-      paramMap: {
-        get: (key: string) => (key === 'id' ? '1' : null),
+  function createActivatedRoute(queryParams: Record<string, string> = {}) {
+    return {
+      snapshot: {
+        paramMap: {
+          get: (key: string) => (key === 'id' ? '1' : null),
+        },
+        queryParamMap: {
+          get: (key: string) => queryParams[key] ?? null,
+        },
       },
-    },
-  };
+    };
+  }
+
+  function flushUserRequest() {
+    const req = httpMock.expectOne(`${apiUrl}/1`);
+    req.flush(mockUser);
+    return req;
+  }
+
+  function flushTasksRequest(response = mockTasksResponse) {
+    const req = httpMock.expectOne((r) => r.url === `${apiUrl}/1/tasks`);
+    req.flush(response);
+    return req;
+  }
+
+  function flushAll() {
+    fixture.detectChanges();
+    flushUserRequest();
+    fixture.detectChanges();
+  }
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
@@ -72,7 +94,7 @@ describe('UserDetailComponent', () => {
         provideHttpClient(),
         provideHttpClientTesting(),
         provideRouter([]),
-        { provide: ActivatedRoute, useValue: mockActivatedRoute },
+        { provide: ActivatedRoute, useValue: createActivatedRoute() },
       ],
     }).compileComponents();
 
@@ -85,98 +107,97 @@ describe('UserDetailComponent', () => {
     httpMock.verify();
   });
 
-  function flushInitRequests() {
-    const userReq = httpMock.expectOne(`${apiUrl}/1`);
-    const tasksReq = httpMock.expectOne((r) => r.url === `${apiUrl}/1/tasks`);
-    return { userReq, tasksReq };
-  }
-
   it('should create', () => {
-    fixture.detectChanges();
-    const { userReq, tasksReq } = flushInitRequests();
-    userReq.flush(mockUser);
-    tasksReq.flush(mockTasksResponse);
+    flushAll();
     expect(component).toBeTruthy();
   });
 
   it('should load user on init', () => {
-    fixture.detectChanges();
-    const { userReq, tasksReq } = flushInitRequests();
-    userReq.flush(mockUser);
-    tasksReq.flush(mockTasksResponse);
-
+    flushAll();
     expect(component.user()?.username).toBe('testuser');
     expect(component.user()?.email).toBe('test@test.com');
     expect(component.userLoading()).toBeFalsy();
   });
 
-  it('should load tasks on init', () => {
+  it('should not load tasks on init by default', () => {
     fixture.detectChanges();
-    const { userReq, tasksReq } = flushInitRequests();
-    userReq.flush(mockUser);
-    tasksReq.flush(mockTasksResponse);
+    httpMock.expectOne(`${apiUrl}/1`).flush(mockUser);
+    httpMock.expectNone((r) => r.url === `${apiUrl}/1/tasks`);
+  });
+
+  it('should load tasks when tab tasks is selected', () => {
+    flushAll();
+
+    component.onTabChange(1);
+    fixture.detectChanges();
+
+    expect(component.tasksLoading()).toBeTruthy();
+    flushTasksRequest();
+    fixture.detectChanges();
 
     expect(component.tasks().length).toBe(2);
     expect(component.tasksTotal()).toBe(2);
     expect(component.tasksLoading()).toBeFalsy();
   });
 
+  it('should not reload tasks when tab is selected again', () => {
+    flushAll();
+
+    component.onTabChange(1);
+    flushTasksRequest();
+    fixture.detectChanges();
+
+    component.onTabChange(0);
+    component.onTabChange(1);
+    fixture.detectChanges();
+
+    httpMock.expectNone((r) => r.url === `${apiUrl}/1/tasks`);
+  });
+
   it('should handle user error', () => {
     fixture.detectChanges();
-    const { userReq, tasksReq } = flushInitRequests();
-    userReq.flush('Error', { status: 404, statusText: 'Not Found' });
-    tasksReq.flush(mockTasksResponse);
+    httpMock.expectOne(`${apiUrl}/1`).flush('Error', { status: 404, statusText: 'Not Found' });
 
     expect(component.userError()).toBe('No se pudo cargar el usuario.');
     expect(component.userLoading()).toBeFalsy();
   });
 
   it('should handle tasks error', () => {
+    flushAll();
+
+    component.onTabChange(1);
     fixture.detectChanges();
-    const { userReq, tasksReq } = flushInitRequests();
-    userReq.flush(mockUser);
-    tasksReq.flush('Error', { status: 500, statusText: 'Server Error' });
+
+    httpMock
+      .expectOne((r) => r.url === `${apiUrl}/1/tasks`)
+      .flush('Error', { status: 500, statusText: 'Server Error' });
 
     expect(component.tasksError()).toBe('No se pudieron cargar las tareas.');
     expect(component.tasksLoading()).toBeFalsy();
   });
 
   it('should format task status correctly', () => {
-    fixture.detectChanges();
-    const { userReq, tasksReq } = flushInitRequests();
-    userReq.flush(mockUser);
-    tasksReq.flush(mockTasksResponse);
-
     expect(component.formatTaskStatus(true)).toBe('Completada');
     expect(component.formatTaskStatus(false)).toBe('Pendiente');
     expect(component.formatTaskStatus(null)).toBe('Pendiente');
   });
 
   it('should format task type correctly', () => {
-    fixture.detectChanges();
-    const { userReq, tasksReq } = flushInitRequests();
-    userReq.flush(mockUser);
-    tasksReq.flush(mockTasksResponse);
-
     expect(component.formatTaskType('Trabajo')).toBe('Trabajo');
     expect(component.formatTaskType(null)).toBe('Sin tipo');
   });
 
   it('should format fecha correctly', () => {
-    fixture.detectChanges();
-    const { userReq, tasksReq } = flushInitRequests();
-    userReq.flush(mockUser);
-    tasksReq.flush(mockTasksResponse);
-
     expect(component.formatFecha('2024-01-01')).toBe('2024-01-01');
     expect(component.formatFecha(null)).toBe('-');
   });
 
   it('should handle tasks pagination', () => {
+    flushAll();
+
+    component.onTabChange(1);
+    flushTasksRequest();
     fixture.detectChanges();
-    const { userReq, tasksReq } = flushInitRequests();
-    userReq.flush(mockUser);
-    tasksReq.flush(mockTasksResponse);
 
     component.onTasksPageChange({ pageIndex: 1, pageSize: 10, length: 50 });
 
@@ -187,5 +208,67 @@ describe('UserDetailComponent', () => {
     expect(tasksReq2.request.params.get('page')).toBe('1');
     expect(tasksReq2.request.params.get('size')).toBe('10');
     tasksReq2.flush({ ...mockTasksResponse, content: [] });
+  });
+
+  it('should display user identification', () => {
+    flushAll();
+    fixture.detectChanges();
+
+    const el: HTMLElement = fixture.nativeElement;
+    expect(el.textContent).toContain('testuser');
+    expect(el.textContent).toContain('test@test.com');
+  });
+
+  it('should display metrics', () => {
+    flushAll();
+    fixture.detectChanges();
+
+    const el: HTMLElement = fixture.nativeElement;
+    expect(el.textContent).toContain('Tareas totales');
+    expect(el.textContent).toContain('Completadas');
+    expect(el.textContent).toContain('Pendientes');
+    expect(el.textContent).toContain('Tipos de tarea');
+  });
+
+  it('should show info banner in task types tab', () => {
+    flushAll();
+
+    component.onTabChange(2);
+    fixture.detectChanges();
+
+    const el: HTMLElement = fixture.nativeElement;
+    expect(el.textContent).toContain('Endpoint no disponible');
+    expect(el.textContent).toContain('GET /api/admin/users');
+    expect(el.textContent).toContain('task-types');
+  });
+
+  it('should select initial tab from query param', async () => {
+    TestBed.resetTestingModule();
+
+    await TestBed.configureTestingModule({
+      imports: [UserDetailComponent, NoopAnimationsModule],
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        provideRouter([]),
+        { provide: ActivatedRoute, useValue: createActivatedRoute({ tab: 'tasks' }) },
+      ],
+    }).compileComponents();
+
+    const newFixture = TestBed.createComponent(UserDetailComponent);
+    const newHttpMock = TestBed.inject(HttpTestingController);
+
+    newFixture.detectChanges();
+    newHttpMock.expectOne(`${apiUrl}/1`).flush(mockUser);
+    newFixture.detectChanges();
+
+    expect(newFixture.componentInstance.selectedTab()).toBe(1);
+
+    newHttpMock.expectOne((r) => r.url === `${apiUrl}/1/tasks`).flush(mockTasksResponse);
+    newFixture.detectChanges();
+
+    expect(newFixture.componentInstance.tasks().length).toBe(2);
+
+    newHttpMock.verify();
   });
 });

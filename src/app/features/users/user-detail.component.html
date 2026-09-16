@@ -15,21 +15,17 @@
       <mat-spinner diameter="40"></mat-spinner>
     </div>
   } @else if (user()) {
-    <div class="user-info">
+    <div class="user-identification">
       <mat-card>
         <mat-card-content>
-          <div class="info-grid">
-            <div class="info-item">
+          <div class="identification-row">
+            <div class="identification-main">
+              <span class="identification-username">{{ user()!.username }}</span>
+              <span class="identification-email">{{ user()!.email }}</span>
+            </div>
+            <div class="identification-id">
               <span class="info-label">ID</span>
               <span class="info-value">{{ user()!.id }}</span>
-            </div>
-            <div class="info-item">
-              <span class="info-label">Usuario</span>
-              <span class="info-value">{{ user()!.username }}</span>
-            </div>
-            <div class="info-item">
-              <span class="info-label">Email</span>
-              <span class="info-value">{{ user()!.email }}</span>
             </div>
           </div>
         </mat-card-content>
@@ -61,66 +57,123 @@
       </mat-card>
     </div>
 
-    <div class="tasks-section">
-      <h2>Tareas</h2>
-
-      @if (tasksError()) {
-        <div class="error-banner" role="alert">{{ tasksError() }}</div>
-      }
-
-      @if (tasksLoading()) {
-        <div class="loading-container">
-          <mat-spinner diameter="40"></mat-spinner>
+    <mat-tab-group
+      [selectedIndex]="selectedTab()"
+      (selectedIndexChange)="onTabChange($event)"
+      animationDuration="200ms"
+    >
+      <mat-tab label="Resumen">
+        <div class="tab-content">
+          <div class="info-grid">
+            <div class="info-item">
+              <span class="info-label">ID</span>
+              <span class="info-value">{{ user()!.id }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Usuario</span>
+              <span class="info-value">{{ user()!.username }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Email</span>
+              <span class="info-value">{{ user()!.email }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Tareas totales</span>
+              <span class="info-value">{{ user()!.totalTasks }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Completadas</span>
+              <span class="info-value">{{ user()!.completedTasks }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Pendientes</span>
+              <span class="info-value">{{ user()!.pendingTasks }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Tipos de tarea</span>
+              <span class="info-value">{{ user()!.taskTypeCount }}</span>
+            </div>
+          </div>
         </div>
-      } @else if (tasks().length === 0) {
-        <div class="empty-state">Este usuario no tiene tareas.</div>
-      } @else {
-        <div class="table-container">
-          <table mat-table [dataSource]="tasks()">
-            <ng-container matColumnDef="id">
-              <th mat-header-cell *matHeaderCellDef>ID</th>
-              <td mat-cell *matCellDef="let task">{{ task.id }}</td>
-            </ng-container>
+      </mat-tab>
 
-            <ng-container matColumnDef="titulo">
-              <th mat-header-cell *matHeaderCellDef>Título</th>
-              <td mat-cell *matCellDef="let task">{{ task.titulo }}</td>
-            </ng-container>
+      <mat-tab label="Tareas">
+        <div class="tab-content">
+          @if (tasksError()) {
+            <div class="error-banner" role="alert">{{ tasksError() }}</div>
+          }
 
-            <ng-container matColumnDef="fecha">
-              <th mat-header-cell *matHeaderCellDef>Fecha</th>
-              <td mat-cell *matCellDef="let task">{{ formatFecha(task.fecha) }}</td>
-            </ng-container>
+          @if (tasksLoading()) {
+            <div class="loading-container">
+              <mat-spinner diameter="40"></mat-spinner>
+            </div>
+          } @else if (tasks().length === 0) {
+            <div class="empty-state">Este usuario no tiene tareas.</div>
+          } @else {
+            <div class="table-container">
+              <table mat-table [dataSource]="tasks()">
+                <ng-container matColumnDef="id">
+                  <th mat-header-cell *matHeaderCellDef>ID</th>
+                  <td mat-cell *matCellDef="let task">{{ task.id }}</td>
+                </ng-container>
 
-            <ng-container matColumnDef="completada">
-              <th mat-header-cell *matHeaderCellDef>Estado</th>
-              <td mat-cell *matCellDef="let task">{{ formatTaskStatus(task.completada) }}</td>
-            </ng-container>
+                <ng-container matColumnDef="titulo">
+                  <th mat-header-cell *matHeaderCellDef>Título</th>
+                  <td mat-cell *matCellDef="let task">{{ task.titulo }}</td>
+                </ng-container>
 
-            <ng-container matColumnDef="urgencia">
-              <th mat-header-cell *matHeaderCellDef>Urgencia</th>
-              <td mat-cell *matCellDef="let task">{{ task.urgencia ?? '-' }}</td>
-            </ng-container>
+                <ng-container matColumnDef="fecha">
+                  <th mat-header-cell *matHeaderCellDef>Fecha</th>
+                  <td mat-cell *matCellDef="let task">{{ formatFecha(task.fecha) }}</td>
+                </ng-container>
 
-            <ng-container matColumnDef="tipoTareaNombre">
-              <th mat-header-cell *matHeaderCellDef>Tipo</th>
-              <td mat-cell *matCellDef="let task">{{ formatTaskType(task.tipoTareaNombre) }}</td>
-            </ng-container>
+                <ng-container matColumnDef="completada">
+                  <th mat-header-cell *matHeaderCellDef>Estado</th>
+                  <td mat-cell *matCellDef="let task">{{ formatTaskStatus(task.completada) }}</td>
+                </ng-container>
 
-            <tr mat-header-row *matHeaderRowDef="taskColumns"></tr>
-            <tr mat-row *matRowDef="let row; columns: taskColumns"></tr>
-          </table>
+                <ng-container matColumnDef="urgencia">
+                  <th mat-header-cell *matHeaderCellDef>Urgencia</th>
+                  <td mat-cell *matCellDef="let task">{{ task.urgencia ?? '-' }}</td>
+                </ng-container>
 
-          <mat-paginator
-            [length]="tasksTotal()"
-            [pageSize]="tasksSize()"
-            [pageIndex]="tasksPage()"
-            [pageSizeOptions]="[10, 20, 50]"
-            (page)="onTasksPageChange($event)"
-            showFirstLastButtons
-          ></mat-paginator>
+                <ng-container matColumnDef="tipoTareaNombre">
+                  <th mat-header-cell *matHeaderCellDef>Tipo</th>
+                  <td mat-cell *matCellDef="let task">{{ formatTaskType(task.tipoTareaNombre) }}</td>
+                </ng-container>
+
+                <tr mat-header-row *matHeaderRowDef="taskColumns"></tr>
+                <tr mat-row *matRowDef="let row; columns: taskColumns"></tr>
+              </table>
+
+              <mat-paginator
+                [length]="tasksTotal()"
+                [pageSize]="tasksSize()"
+                [pageIndex]="tasksPage()"
+                [pageSizeOptions]="[10, 20, 50]"
+                (page)="onTasksPageChange($event)"
+                showFirstLastButtons
+              ></mat-paginator>
+            </div>
+          }
         </div>
-      }
-    </div>
+      </mat-tab>
+
+      <mat-tab label="Tipos de tarea">
+        <div class="tab-content">
+          <div class="info-banner">
+            <mat-icon>info</mat-icon>
+            <div class="info-banner-content">
+              <span class="info-banner-title">Endpoint no disponible</span>
+              <span class="info-banner-text">
+                La administración de tipos de tarea por usuario se habilitará
+                cuando el backend provea el endpoint
+                <code>GET /api/admin/users/{{ '{' }}id{{ '}' }}/task-types</code>.
+              </span>
+            </div>
+          </div>
+        </div>
+      </mat-tab>
+    </mat-tab-group>
   }
 </div>
