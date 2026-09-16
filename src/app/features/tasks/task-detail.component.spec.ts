@@ -1,7 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting, HttpTestingController } from '@angular/common/http/testing';
-import { provideRouter } from '@angular/router';
+import { provideRouter, Router } from '@angular/router';
 import { ActivatedRoute } from '@angular/router';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { TaskDetailComponent } from './task-detail.component';
@@ -11,6 +11,7 @@ describe('TaskDetailComponent', () => {
   let component: TaskDetailComponent;
   let fixture: ComponentFixture<TaskDetailComponent>;
   let httpMock: HttpTestingController;
+  let router: Router;
 
   const apiUrl = `${environment.apiUrl}/api/admin/tasks`;
 
@@ -21,7 +22,7 @@ describe('TaskDetailComponent', () => {
     fecha: '2024-01-01',
     completada: true,
     urgencia: 'alta',
-    usuarioId: 1,
+    usuarioId: 5,
     usuarioUsername: 'user1',
     usuarioEmail: 'user1@test.com',
     tipoTareaId: 1,
@@ -51,6 +52,7 @@ describe('TaskDetailComponent', () => {
     fixture = TestBed.createComponent(TaskDetailComponent);
     component = fixture.componentInstance;
     httpMock = TestBed.inject(HttpTestingController);
+    router = TestBed.inject(Router);
   });
 
   afterEach(() => {
@@ -127,5 +129,49 @@ describe('TaskDetailComponent', () => {
 
     expect(component.formatUrgencia(null)).toBe('-');
     expect(component.formatUrgencia('alta')).toBe('alta');
+  });
+
+  it('should navigate to user detail with tab=tasks on goBack', () => {
+    fixture.detectChanges();
+    const req = httpMock.expectOne(`${apiUrl}/1`);
+    req.flush(mockTask);
+
+    const navigateSpy = vi.spyOn(router, 'navigate');
+    component.goBack();
+
+    expect(navigateSpy).toHaveBeenCalledWith(['/users', 5], { queryParams: { tab: 'tasks' } });
+  });
+
+  it('should navigate to /users when task has no usuarioId', () => {
+    fixture.detectChanges();
+    const req = httpMock.expectOne(`${apiUrl}/1`);
+    req.flush({ ...mockTask, usuarioId: undefined });
+
+    const navigateSpy = vi.spyOn(router, 'navigate');
+    component.goBack();
+
+    expect(navigateSpy).toHaveBeenCalledWith(['/users']);
+  });
+
+  it('should show user info from task', () => {
+    fixture.detectChanges();
+    const req = httpMock.expectOne(`${apiUrl}/1`);
+    req.flush(mockTask);
+    fixture.detectChanges();
+
+    const el: HTMLElement = fixture.nativeElement;
+    expect(el.textContent).toContain('user1');
+    expect(el.textContent).toContain('user1@test.com');
+  });
+
+  it('should show back button with correct aria-label', () => {
+    fixture.detectChanges();
+    const req = httpMock.expectOne(`${apiUrl}/1`);
+    req.flush(mockTask);
+    fixture.detectChanges();
+
+    const el: HTMLElement = fixture.nativeElement;
+    const backButton = el.querySelector('button[aria-label="Volver al usuario"]');
+    expect(backButton).toBeTruthy();
   });
 });

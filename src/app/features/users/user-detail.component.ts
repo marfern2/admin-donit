@@ -5,6 +5,7 @@ import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatCardModule } from '@angular/material/card';
+import { MatTabsModule } from '@angular/material/tabs';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { AdminUsersService } from './services/admin-users.service';
 import { AdminUserDetail, AdminUserTaskSummary } from './models/admin-user.model';
@@ -18,6 +19,7 @@ import { AdminUserDetail, AdminUserTaskSummary } from './models/admin-user.model
     MatButtonModule,
     MatIconModule,
     MatCardModule,
+    MatTabsModule,
     MatProgressSpinnerModule,
   ],
   templateUrl: './user-detail.component.html',
@@ -41,12 +43,31 @@ export class UserDetailComponent implements OnInit {
 
   readonly taskColumns = ['id', 'titulo', 'fecha', 'completada', 'urgencia', 'tipoTareaNombre'];
 
+  readonly selectedTab = signal(0);
+
   private userId = 0;
+  private tasksLoaded = false;
 
   ngOnInit(): void {
     this.userId = Number(this.route.snapshot.paramMap.get('id'));
+
+    const tabParam = this.route.snapshot.queryParamMap.get('tab');
+    if (tabParam === 'tasks') {
+      this.selectedTab.set(1);
+    }
+
     this.loadUser();
-    this.loadTasks();
+
+    if (this.selectedTab() === 1) {
+      this.loadTasks();
+    }
+  }
+
+  onTabChange(index: number): void {
+    this.selectedTab.set(index);
+    if (index === 1 && !this.tasksLoaded) {
+      this.loadTasks();
+    }
   }
 
   loadUser(): void {
@@ -79,10 +100,12 @@ export class UserDetailComponent implements OnInit {
           this.tasks.set(data.content);
           this.tasksTotal.set(data.totalElements);
           this.tasksLoading.set(false);
+          this.tasksLoaded = true;
         },
         error: () => {
           this.tasksError.set('No se pudieron cargar las tareas.');
           this.tasksLoading.set(false);
+          this.tasksLoaded = true;
         },
       });
   }

@@ -47,7 +47,12 @@ export class TaskDetailComponent implements OnInit {
   }
 
   goBack(): void {
-    this.router.navigate(['/tasks']);
+    const usuarioId = this.task()?.usuarioId;
+    if (usuarioId) {
+      this.router.navigate(['/users', usuarioId], { queryParams: { tab: 'tasks' } });
+    } else {
+      this.router.navigate(['/users']);
+    }
   }
 
   formatStatus(completada: boolean | null): string {

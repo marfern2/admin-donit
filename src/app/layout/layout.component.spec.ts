@@ -151,4 +151,24 @@ describe('LayoutComponent', () => {
     component.closeSidenav();
     expect(component.sidenav()).toBeFalsy();
   });
+
+  it('should only show Usuarios link in sidenav', () => {
+    fixture.detectChanges();
+    const el: HTMLElement = fixture.nativeElement;
+    const navLinks = el.querySelectorAll('mat-nav-list a');
+    expect(navLinks.length).toBe(1);
+    expect(navLinks[0].getAttribute('aria-label')).toBe('Usuarios');
+  });
+
+  it('should not show Tareas link in sidenav', () => {
+    fixture.detectChanges();
+    const el: HTMLElement = fixture.nativeElement;
+    expect(el.textContent).not.toContain('Tareas');
+  });
+
+  it('should not show Tipos de tarea link in sidenav', () => {
+    fixture.detectChanges();
+    const el: HTMLElement = fixture.nativeElement;
+    expect(el.textContent).not.toContain('Tipos de tarea');
+  });
 });
