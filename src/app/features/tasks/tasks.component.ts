@@ -225,7 +225,7 @@ export class TasksComponent implements OnInit {
     return fecha ?? '-';
   }
 
-  formatUrgencia(urgencia: string | null): string {
-    return urgencia ?? '-';
+  formatUrgencia(urgencia: number | null): string {
+    return urgencia !== null ? String(urgencia) : '-';
   }
 }

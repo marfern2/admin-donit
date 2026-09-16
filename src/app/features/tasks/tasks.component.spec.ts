@@ -22,7 +22,7 @@ describe('TasksComponent', () => {
         descripcion: 'Desc1',
         fecha: '2024-01-01',
         completada: true,
-        urgencia: 'alta',
+        urgencia: 0,
         usuarioId: 1,
         usuarioUsername: 'user1',
         usuarioEmail: 'user1@test.com',
@@ -317,11 +317,11 @@ describe('TasksComponent', () => {
   it('should send urgency filter', () => {
     flushAllOnInit();
 
-    component.urgencyCtrl.setValue('alta');
+    component.urgencyCtrl.setValue('0');
     component.onFilterChange();
 
     const req = flushTasksRequest();
-    expect(req.request.params.get('urgency')).toBe('alta');
+    expect(req.request.params.get('urgency')).toBe('0');
   });
 
   it('should send taskTypeId filter', () => {
@@ -340,7 +340,7 @@ describe('TasksComponent', () => {
     component.searchCtrl.setValue('test');
     component.userIdCtrl.setValue(5);
     component.completedCtrl.setValue('true');
-    component.urgencyCtrl.setValue('alta');
+    component.urgencyCtrl.setValue('0');
     component.taskTypeIdCtrl.setValue(3);
 
     component.clearFilters();
@@ -431,7 +431,7 @@ describe('TasksComponent', () => {
   });
 
   it('should format urgencia correctly', () => {
-    expect(component.formatUrgencia('alta')).toBe('alta');
+    expect(component.formatUrgencia(0)).toBe('0');
     expect(component.formatUrgencia(null)).toBe('-');
   });
 

@@ -82,10 +82,10 @@ describe('AdminTasksService', () => {
   });
 
   it('should GET tasks with urgency', () => {
-    service.getTasks({ page: 0, size: 20, urgency: 'alta' }).subscribe();
+    service.getTasks({ page: 0, size: 20, urgency: '0' }).subscribe();
 
     const req = httpMock.expectOne((r) => r.url === apiUrl);
-    expect(req.request.params.get('urgency')).toBe('alta');
+    expect(req.request.params.get('urgency')).toBe('0');
     req.flush({ content: [], page: 0, size: 20, totalElements: 0, totalPages: 0, first: true, last: true });
   });
 
@@ -114,7 +114,7 @@ describe('AdminTasksService', () => {
       descripcion: 'Desc',
       fecha: '2024-01-01',
       completada: true,
-      urgencia: 'alta',
+      urgencia: 0,
       usuarioId: 1,
       usuarioUsername: 'user1',
       usuarioEmail: 'user1@test.com',

@@ -68,8 +68,8 @@ export class TaskDetailComponent implements OnInit {
     return fecha ?? '-';
   }
 
-  formatUrgencia(urgencia: string | null): string {
-    return urgencia ?? '-';
+  formatUrgencia(urgencia: number | null): string {
+    return urgencia !== null ? String(urgencia) : '-';
   }
 
   formatDescripcion(descripcion: string | null): string {
