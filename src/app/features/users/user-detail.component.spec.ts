@@ -17,6 +17,7 @@ describe('UserDetailComponent', () => {
     id: 1,
     username: 'testuser',
     email: 'test@test.com',
+    enabled: true,
     totalTasks: 5,
     completedTasks: 3,
     pendingTasks: 2,
@@ -31,7 +32,7 @@ describe('UserDetailComponent', () => {
         descripcion: 'Desc1',
         fecha: '2024-01-01',
         completada: true,
-        urgencia: 'alta',
+        urgencia: 0,
         tipoTareaId: 1,
         tipoTareaNombre: 'Trabajo',
         tipoTareaColor: '#FF0000',
@@ -47,6 +48,19 @@ describe('UserDetailComponent', () => {
         tipoTareaNombre: null,
         tipoTareaColor: null,
       },
+    ],
+    page: 0,
+    size: 20,
+    totalElements: 2,
+    totalPages: 1,
+    first: true,
+    last: true,
+  };
+
+  const mockTaskTypesResponse = {
+    content: [
+      { id: 1, nombre: 'Trabajo', descripcion: 'Tipo trabajo', color: '#FF0000', taskCount: 3 },
+      { id: 2, nombre: 'Personal', descripcion: null, color: '#00FF00', taskCount: 0 },
     ],
     page: 0,
     size: 20,
@@ -77,6 +91,12 @@ describe('UserDetailComponent', () => {
 
   function flushTasksRequest(response = mockTasksResponse) {
     const req = httpMock.expectOne((r) => r.url === `${apiUrl}/1/tasks`);
+    req.flush(response);
+    return req;
+  }
+
+  function flushTaskTypesRequest(response = mockTaskTypesResponse) {
+    const req = httpMock.expectOne((r) => r.url === `${apiUrl}/1/task-types`);
     req.flush(response);
     return req;
   }
@@ -116,6 +136,7 @@ describe('UserDetailComponent', () => {
     flushAll();
     expect(component.user()?.username).toBe('testuser');
     expect(component.user()?.email).toBe('test@test.com');
+    expect(component.user()?.enabled).toBeTruthy();
     expect(component.userLoading()).toBeFalsy();
   });
 
@@ -140,6 +161,21 @@ describe('UserDetailComponent', () => {
     expect(component.tasksLoading()).toBeFalsy();
   });
 
+  it('should load task types when tab types is selected', () => {
+    flushAll();
+
+    component.onTabChange(2);
+    fixture.detectChanges();
+
+    expect(component.taskTypesLoading()).toBeTruthy();
+    flushTaskTypesRequest();
+    fixture.detectChanges();
+
+    expect(component.taskTypes().length).toBe(2);
+    expect(component.taskTypesTotal()).toBe(2);
+    expect(component.taskTypesLoading()).toBeFalsy();
+  });
+
   it('should not reload tasks when tab is selected again', () => {
     flushAll();
 
@@ -152,6 +188,20 @@ describe('UserDetailComponent', () => {
     fixture.detectChanges();
 
     httpMock.expectNone((r) => r.url === `${apiUrl}/1/tasks`);
+  });
+
+  it('should not reload task types when tab is selected again', () => {
+    flushAll();
+
+    component.onTabChange(2);
+    flushTaskTypesRequest();
+    fixture.detectChanges();
+
+    component.onTabChange(0);
+    component.onTabChange(2);
+    fixture.detectChanges();
+
+    httpMock.expectNone((r) => r.url === `${apiUrl}/1/task-types`);
   });
 
   it('should handle user error', () => {
@@ -174,6 +224,20 @@ describe('UserDetailComponent', () => {
 
     expect(component.tasksError()).toBe('No se pudieron cargar las tareas.');
     expect(component.tasksLoading()).toBeFalsy();
+  });
+
+  it('should handle task types error', () => {
+    flushAll();
+
+    component.onTabChange(2);
+    fixture.detectChanges();
+
+    httpMock
+      .expectOne((r) => r.url === `${apiUrl}/1/task-types`)
+      .flush('Error', { status: 500, statusText: 'Server Error' });
+
+    expect(component.taskTypesError()).toBe('No se pudieron cargar los tipos de tarea.');
+    expect(component.taskTypesLoading()).toBeFalsy();
   });
 
   it('should format task status correctly', () => {
@@ -210,6 +274,24 @@ describe('UserDetailComponent', () => {
     tasksReq2.flush({ ...mockTasksResponse, content: [] });
   });
 
+  it('should handle task types pagination', () => {
+    flushAll();
+
+    component.onTabChange(2);
+    flushTaskTypesRequest();
+    fixture.detectChanges();
+
+    component.onTaskTypesPageChange({ pageIndex: 1, pageSize: 10, length: 50 });
+
+    expect(component.taskTypesPage()).toBe(1);
+    expect(component.taskTypesSize()).toBe(10);
+
+    const typesReq2 = httpMock.expectOne((r) => r.url === `${apiUrl}/1/task-types`);
+    expect(typesReq2.request.params.get('page')).toBe('1');
+    expect(typesReq2.request.params.get('size')).toBe('10');
+    typesReq2.flush({ ...mockTaskTypesResponse, content: [] });
+  });
+
   it('should display user identification', () => {
     flushAll();
     fixture.detectChanges();
@@ -217,6 +299,14 @@ describe('UserDetailComponent', () => {
     const el: HTMLElement = fixture.nativeElement;
     expect(el.textContent).toContain('testuser');
     expect(el.textContent).toContain('test@test.com');
+  });
+
+  it('should display user enabled status', () => {
+    flushAll();
+    fixture.detectChanges();
+
+    const el: HTMLElement = fixture.nativeElement;
+    expect(el.textContent).toContain('Activo');
   });
 
   it('should display metrics', () => {
@@ -230,19 +320,42 @@ describe('UserDetailComponent', () => {
     expect(el.textContent).toContain('Tipos de tarea');
   });
 
-  it('should show info banner in task types tab', () => {
+  it('should show actions section in summary tab', () => {
+    flushAll();
+    fixture.detectChanges();
+
+    const el: HTMLElement = fixture.nativeElement;
+    expect(el.textContent).toContain('Acciones');
+    expect(el.textContent).toContain('Editar usuario');
+    expect(el.textContent).toContain('Deshabilitar');
+    expect(el.textContent).toContain('Eliminar usuario');
+  });
+
+  it('should show create task button in tasks tab', () => {
+    flushAll();
+
+    component.onTabChange(1);
+    fixture.detectChanges();
+    flushTasksRequest();
+    fixture.detectChanges();
+
+    const el: HTMLElement = fixture.nativeElement;
+    expect(el.textContent).toContain('Crear tarea');
+  });
+
+  it('should show create type button in task types tab', () => {
     flushAll();
 
     component.onTabChange(2);
     fixture.detectChanges();
+    flushTaskTypesRequest();
+    fixture.detectChanges();
 
     const el: HTMLElement = fixture.nativeElement;
-    expect(el.textContent).toContain('Endpoint no disponible');
-    expect(el.textContent).toContain('GET /api/admin/users');
-    expect(el.textContent).toContain('task-types');
+    expect(el.textContent).toContain('Crear tipo');
   });
 
-  it('should select initial tab from query param', async () => {
+  it('should select initial tab from query param tasks', async () => {
     TestBed.resetTestingModule();
 
     await TestBed.configureTestingModule({
@@ -270,5 +383,57 @@ describe('UserDetailComponent', () => {
     expect(newFixture.componentInstance.tasks().length).toBe(2);
 
     newHttpMock.verify();
+  });
+
+  it('should select initial tab from query param task-types', async () => {
+    TestBed.resetTestingModule();
+
+    await TestBed.configureTestingModule({
+      imports: [UserDetailComponent, NoopAnimationsModule],
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        provideRouter([]),
+        { provide: ActivatedRoute, useValue: createActivatedRoute({ tab: 'task-types' }) },
+      ],
+    }).compileComponents();
+
+    const newFixture = TestBed.createComponent(UserDetailComponent);
+    const newHttpMock = TestBed.inject(HttpTestingController);
+
+    newFixture.detectChanges();
+    newHttpMock.expectOne(`${apiUrl}/1`).flush(mockUser);
+    newFixture.detectChanges();
+
+    expect(newFixture.componentInstance.selectedTab()).toBe(2);
+
+    newHttpMock.expectOne((r) => r.url === `${apiUrl}/1/task-types`).flush(mockTaskTypesResponse);
+    newFixture.detectChanges();
+
+    expect(newFixture.componentInstance.taskTypes().length).toBe(2);
+
+    newHttpMock.verify();
+  });
+
+  it('should handle complete/reopen task', () => {
+    flushAll();
+
+    component.onTabChange(1);
+    fixture.detectChanges();
+    flushTasksRequest();
+    fixture.detectChanges();
+
+    const task = component.tasks()[0];
+    component.toggleTaskCompleted(task);
+
+    const req = httpMock.expectOne(`${apiUrl}/1/tasks/1`);
+    expect(req.request.method).toBe('PATCH');
+    expect(req.request.body).toEqual({ completada: false });
+    req.flush({ ...task, completada: false });
+
+    const reloadReq = httpMock.expectOne((r) => r.url === `${apiUrl}/1/tasks`);
+    reloadReq.flush(mockTasksResponse);
+    const userReq = httpMock.expectOne(`${apiUrl}/1`);
+    userReq.flush(mockUser);
   });
 });

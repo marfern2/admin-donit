@@ -4,7 +4,7 @@ export interface AdminTaskSummary {
   descripcion: string | null;
   fecha: string | null;
   completada: boolean | null;
-  urgencia: string | null;
+  urgencia: number | null;
   usuarioId: number;
   usuarioUsername: string;
   usuarioEmail: string;

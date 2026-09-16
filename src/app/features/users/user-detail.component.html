@@ -22,6 +22,9 @@
             <div class="identification-main">
               <span class="identification-username">{{ user()!.username }}</span>
               <span class="identification-email">{{ user()!.email }}</span>
+              <span class="identification-status" [class.enabled]="user()!.enabled" [class.disabled]="!user()!.enabled">
+                {{ user()!.enabled ? 'Activo' : 'Deshabilitado' }}
+              </span>
             </div>
             <div class="identification-id">
               <span class="info-label">ID</span>
@@ -78,6 +81,10 @@
               <span class="info-value">{{ user()!.email }}</span>
             </div>
             <div class="info-item">
+              <span class="info-label">Estado</span>
+              <span class="info-value">{{ user()!.enabled ? 'Activo' : 'Deshabilitado' }}</span>
+            </div>
+            <div class="info-item">
               <span class="info-label">Tareas totales</span>
               <span class="info-value">{{ user()!.totalTasks }}</span>
             </div>
@@ -94,11 +101,37 @@
               <span class="info-value">{{ user()!.taskTypeCount }}</span>
             </div>
           </div>
+
+          <div class="actions-section">
+            <h3>Acciones</h3>
+            <div class="actions-row">
+              <button mat-stroked-button (click)="openEditUserDialog()" aria-label="Editar usuario">
+                <mat-icon>edit</mat-icon>
+                Editar usuario
+              </button>
+              <button mat-stroked-button (click)="toggleEnabled()" [attr.aria-label]="user()!.enabled ? 'Deshabilitar usuario' : 'Habilitar usuario'">
+                <mat-icon>{{ user()!.enabled ? 'block' : 'check_circle' }}</mat-icon>
+                {{ user()!.enabled ? 'Deshabilitar' : 'Habilitar' }}
+              </button>
+              <button mat-stroked-button color="warn" (click)="deleteUser()" aria-label="Eliminar usuario">
+                <mat-icon>delete</mat-icon>
+                Eliminar usuario
+              </button>
+            </div>
+          </div>
         </div>
       </mat-tab>
 
       <mat-tab label="Tareas">
         <div class="tab-content">
+          <div class="tab-header-row">
+            <h3>Tareas</h3>
+            <button mat-flat-button color="primary" (click)="openCreateTaskDialog()" aria-label="Crear tarea">
+              <mat-icon>add</mat-icon>
+              Crear tarea
+            </button>
+          </div>
+
           @if (tasksError()) {
             <div class="error-banner" role="alert">{{ tasksError() }}</div>
           }
@@ -129,7 +162,11 @@
 
                 <ng-container matColumnDef="completada">
                   <th mat-header-cell *matHeaderCellDef>Estado</th>
-                  <td mat-cell *matCellDef="let task">{{ formatTaskStatus(task.completada) }}</td>
+                  <td mat-cell *matCellDef="let task">
+                    <mat-chip [class.chip-completed]="task.completada" [class.chip-pending]="!task.completada">
+                      {{ formatTaskStatus(task.completada) }}
+                    </mat-chip>
+                  </td>
                 </ng-container>
 
                 <ng-container matColumnDef="urgencia">
@@ -139,7 +176,35 @@
 
                 <ng-container matColumnDef="tipoTareaNombre">
                   <th mat-header-cell *matHeaderCellDef>Tipo</th>
-                  <td mat-cell *matCellDef="let task">{{ formatTaskType(task.tipoTareaNombre) }}</td>
+                  <td mat-cell *matCellDef="let task">
+                    @if (task.tipoTareaColor) {
+                      <span class="color-swatch" [style.background]="task.tipoTareaColor"></span>
+                    }
+                    {{ formatTaskType(task.tipoTareaNombre) }}
+                  </td>
+                </ng-container>
+
+                <ng-container matColumnDef="actions">
+                  <th mat-header-cell *matHeaderCellDef></th>
+                  <td mat-cell *matCellDef="let task">
+                    <button mat-icon-button [matMenuTriggerFor]="taskMenu" [attr.aria-label]="'Acciones de tarea ' + task.titulo" (click)="$event.stopPropagation()">
+                      <mat-icon>more_vert</mat-icon>
+                    </button>
+                    <mat-menu #taskMenu="matMenu">
+                      <button mat-menu-item (click)="openEditTaskDialog(task)" aria-label="Editar tarea">
+                        <mat-icon>edit</mat-icon>
+                        <span>Editar</span>
+                      </button>
+                      <button mat-menu-item (click)="toggleTaskCompleted(task)" [attr.aria-label]="task.completada ? 'Reabrir tarea' : 'Marcar completada'">
+                        <mat-icon>{{ task.completada ? 'replay' : 'check' }}</mat-icon>
+                        <span>{{ task.completada ? 'Reabrir' : 'Completar' }}</span>
+                      </button>
+                      <button mat-menu-item (click)="deleteTask(task)" class="warn-item" aria-label="Eliminar tarea">
+                        <mat-icon color="warn">delete</mat-icon>
+                        <span>Eliminar</span>
+                      </button>
+                    </mat-menu>
+                  </td>
                 </ng-container>
 
                 <tr mat-header-row *matHeaderRowDef="taskColumns"></tr>
@@ -161,17 +226,90 @@
 
       <mat-tab label="Tipos de tarea">
         <div class="tab-content">
-          <div class="info-banner">
-            <mat-icon>info</mat-icon>
-            <div class="info-banner-content">
-              <span class="info-banner-title">Endpoint no disponible</span>
-              <span class="info-banner-text">
-                La administración de tipos de tarea por usuario se habilitará
-                cuando el backend provea el endpoint
-                <code>GET /api/admin/users/{{ '{' }}id{{ '}' }}/task-types</code>.
-              </span>
-            </div>
+          <div class="tab-header-row">
+            <h3>Tipos de tarea</h3>
+            <button mat-flat-button color="primary" (click)="openCreateTaskTypeDialog()" aria-label="Crear tipo de tarea">
+              <mat-icon>add</mat-icon>
+              Crear tipo
+            </button>
           </div>
+
+          @if (taskTypesError()) {
+            <div class="error-banner" role="alert">{{ taskTypesError() }}</div>
+          }
+
+          @if (taskTypesLoading()) {
+            <div class="loading-container">
+              <mat-spinner diameter="40"></mat-spinner>
+            </div>
+          } @else if (taskTypes().length === 0) {
+            <div class="empty-state">Este usuario no tiene tipos de tarea.</div>
+          } @else {
+            <div class="table-container">
+              <table mat-table [dataSource]="taskTypes()">
+                <ng-container matColumnDef="id">
+                  <th mat-header-cell *matHeaderCellDef>ID</th>
+                  <td mat-cell *matCellDef="let type">{{ type.id }}</td>
+                </ng-container>
+
+                <ng-container matColumnDef="nombre">
+                  <th mat-header-cell *matHeaderCellDef>Nombre</th>
+                  <td mat-cell *matCellDef="let type">{{ type.nombre }}</td>
+                </ng-container>
+
+                <ng-container matColumnDef="descripcion">
+                  <th mat-header-cell *matHeaderCellDef>Descripción</th>
+                  <td mat-cell *matCellDef="let type">{{ type.descripcion ?? '-' }}</td>
+                </ng-container>
+
+                <ng-container matColumnDef="color">
+                  <th mat-header-cell *matHeaderCellDef>Color</th>
+                  <td mat-cell *matCellDef="let type">
+                    <span class="color-value">
+                      <span class="color-swatch" [style.background]="type.color"></span>
+                      {{ type.color }}
+                    </span>
+                  </td>
+                </ng-container>
+
+                <ng-container matColumnDef="taskCount">
+                  <th mat-header-cell *matHeaderCellDef>Tareas</th>
+                  <td mat-cell *matCellDef="let type">{{ type.taskCount }}</td>
+                </ng-container>
+
+                <ng-container matColumnDef="actions">
+                  <th mat-header-cell *matHeaderCellDef></th>
+                  <td mat-cell *matCellDef="let type">
+                    <button mat-icon-button [matMenuTriggerFor]="typeMenu" [attr.aria-label]="'Acciones de tipo ' + type.nombre" (click)="$event.stopPropagation()">
+                      <mat-icon>more_vert</mat-icon>
+                    </button>
+                    <mat-menu #typeMenu="matMenu">
+                      <button mat-menu-item (click)="openEditTaskTypeDialog(type)" aria-label="Editar tipo">
+                        <mat-icon>edit</mat-icon>
+                        <span>Editar</span>
+                      </button>
+                      <button mat-menu-item (click)="deleteTaskType(type)" class="warn-item" aria-label="Eliminar tipo">
+                        <mat-icon color="warn">delete</mat-icon>
+                        <span>Eliminar</span>
+                      </button>
+                    </mat-menu>
+                  </td>
+                </ng-container>
+
+                <tr mat-header-row *matHeaderRowDef="taskTypeColumns"></tr>
+                <tr mat-row *matRowDef="let row; columns: taskTypeColumns"></tr>
+              </table>
+
+              <mat-paginator
+                [length]="taskTypesTotal()"
+                [pageSize]="taskTypesSize()"
+                [pageIndex]="taskTypesPage()"
+                [pageSizeOptions]="[10, 20, 50]"
+                (page)="onTaskTypesPageChange($event)"
+                showFirstLastButtons
+              ></mat-paginator>
+            </div>
+          }
         </div>
       </mat-tab>
     </mat-tab-group>

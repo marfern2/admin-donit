@@ -21,7 +21,7 @@ describe('TaskDetailComponent', () => {
     descripcion: 'Desc1',
     fecha: '2024-01-01',
     completada: true,
-    urgencia: 'alta',
+    urgencia: 0,
     usuarioId: 5,
     usuarioUsername: 'user1',
     usuarioEmail: 'user1@test.com',
@@ -128,7 +128,7 @@ describe('TaskDetailComponent', () => {
     req.flush(mockTask);
 
     expect(component.formatUrgencia(null)).toBe('-');
-    expect(component.formatUrgencia('alta')).toBe('alta');
+    expect(component.formatUrgencia(0)).toBe('0');
   });
 
   it('should navigate to user detail with tab=tasks on goBack', () => {
