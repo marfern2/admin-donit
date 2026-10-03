@@ -1,4 +1,5 @@
 export const environment = {
   production: true,
-  apiUrl: 'https://donit-api.marfern.dev',
+  // Solo fallback de tests; la aplicacion usa runtime-config.json.
+  apiUrl: 'http://localhost:8080',
 };

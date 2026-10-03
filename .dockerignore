@@ -12,3 +12,11 @@ out-tsc
 Thumbs.db
 .editorconfig
 .prettierrc
+.env
+.env.*
+*.env
+*.env.*
+**/.env
+**/.env.*
+**/*.env
+**/*.env.*

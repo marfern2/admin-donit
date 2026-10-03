@@ -1,0 +1,13 @@
+[Unit]
+Description=Poller CD admin-donit PROD
+After=docker.service network-online.target
+Requires=docker.service
+
+[Service]
+Type=oneshot
+User=mar
+Group=mar
+WorkingDirectory=/srv/docker/admin-donit
+Environment=DEPLOY_ENV=prod
+ExecStart=/srv/docker/admin-donit/scripts/cd-poll.sh
+TimeoutStartSec=10min

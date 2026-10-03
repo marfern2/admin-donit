@@ -1,8 +1,9 @@
 import { TestBed } from '@angular/core/testing';
-import { provideHttpClient } from '@angular/common/http';
+import { HttpClient, provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting, HttpTestingController } from '@angular/common/http/testing';
 import { Router } from '@angular/router';
 import { AdminAuthService } from './auth.service';
+import { RuntimeConfigService } from '../config/runtime-config.service';
 import { environment } from '../../../environments/environment';
 
 describe('AdminAuthService', () => {
@@ -28,7 +29,12 @@ describe('AdminAuthService', () => {
     sessionStorage.clear();
 
     TestBed.configureTestingModule({
-      providers: [AdminAuthService, provideHttpClient(), provideHttpClientTesting()],
+      providers: [
+        AdminAuthService,
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        { provide: RuntimeConfigService, useValue: { apiUrl: environment.apiUrl } },
+      ],
     });
 
     service = TestBed.inject(AdminAuthService);
@@ -44,6 +50,17 @@ describe('AdminAuthService', () => {
 
   it('should be created', () => {
     expect(service).toBeTruthy();
+  });
+
+  it('no permite peticiones antes de cargar runtime config', () => {
+    const unconfigured = new AdminAuthService(
+      TestBed.inject(HttpClient),
+      router,
+      new RuntimeConfigService(),
+    );
+    expect(() => unconfigured.login({ email: 'admin@test.com', password: 'pass' })).toThrow(
+      'no se ha cargado',
+    );
   });
 
   it('should not be authenticated initially', () => {
@@ -114,7 +131,11 @@ describe('AdminAuthService', () => {
 
     it('should return error if no refresh token', () => {
       sessionStorage.clear();
-      const freshService = new AdminAuthService(httpMock as any, router);
+      const freshService = new AdminAuthService(
+        httpMock as any,
+        router,
+        TestBed.inject(RuntimeConfigService),
+      );
       freshService.refresh().subscribe({
         error: (err: Error) => {
           expect(err.message).toBe('No refresh token available');

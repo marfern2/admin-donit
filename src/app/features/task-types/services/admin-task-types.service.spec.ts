@@ -2,6 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting, HttpTestingController } from '@angular/common/http/testing';
 import { AdminTaskTypesService } from './admin-task-types.service';
+import { RuntimeConfigService } from '../../../core/config/runtime-config.service';
 import { environment } from '../../../../environments/environment';
 
 describe('AdminTaskTypesService', () => {
@@ -22,7 +23,12 @@ describe('AdminTaskTypesService', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      providers: [AdminTaskTypesService, provideHttpClient(), provideHttpClientTesting()],
+      providers: [
+        AdminTaskTypesService,
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        { provide: RuntimeConfigService, useValue: { apiUrl: environment.apiUrl } },
+      ],
     });
 
     service = TestBed.inject(AdminTaskTypesService);

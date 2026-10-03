@@ -1,7 +1,7 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { environment } from '../../../../environments/environment';
+import { RuntimeConfigService } from '../../../core/config/runtime-config.service';
 import {
   AdminPage,
   AdminUserSummary,
@@ -21,7 +21,10 @@ import {
 
 @Injectable({ providedIn: 'root' })
 export class AdminUsersService {
-  private readonly apiUrl = `${environment.apiUrl}/api/admin/users`;
+  private readonly runtimeConfig = inject(RuntimeConfigService);
+  private get apiUrl(): string {
+    return `${this.runtimeConfig.apiUrl}/api/admin/users`;
+  }
 
   constructor(private http: HttpClient) {}
 
@@ -93,10 +96,9 @@ export class AdminUsersService {
       .set('page', params.page.toString())
       .set('size', params.size.toString());
 
-    return this.http.get<AdminPage<AdminUserTaskTypeSummary>>(
-      `${this.apiUrl}/${id}/task-types`,
-      { params: httpParams },
-    );
+    return this.http.get<AdminPage<AdminUserTaskTypeSummary>>(`${this.apiUrl}/${id}/task-types`, {
+      params: httpParams,
+    });
   }
 
   createTaskType(
