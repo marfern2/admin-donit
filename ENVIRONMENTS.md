@@ -40,8 +40,38 @@ Los pushes a `develop` y `master` publican `ghcr.io/marfern2/admin-donit:<sha40>
 digest sirve DEV o PROD; la diferencia está únicamente en `DONIT_API_URL`.
 Los aliases `develop` y `master` no son la fuente del despliegue.
 
+El poller consulta la rama solo para seleccionar `TARGET_SHA`. El deploy exige
+un SHA hexadecimal lowercase de 40 caracteres que exista como commit, descarga
+ese objeto y extrae a un directorio temporal los únicos artefactos runtime
+permitidos: `compose.dev.yaml` en DEV o `compose.yaml` en PROD,
+`scripts/cd-poll.sh` y `scripts/cd-deploy.sh`. Verifica los archivos antes de
+sincronizarlos y ejecuta el deployer extraído del propio `TARGET_SHA`. No usa
+`origin/develop` ni `origin/master` como fuente después de seleccionar el SHA.
+Comprueba además que Compose resuelve la imagen `frontend` al tag SHA exacto
+antes de hacer pull o arrancar, tanto en deploy como en rollback.
+No se sincronizan `src/`, Angular, `package*.json`, `docker/`, nginx ni los
+ficheros de systemd: el contenedor ya trae el frontend y su entrypoint.
+
+El checkout del servidor puede tener cambios locales: CD no hace `git pull`,
+`git reset`, `git clean` ni `git checkout` y solo sustituye los tres archivos
+versionados de la allowlist. El `.env`
+real conserva sus variables; CD cambia atómicamente solo `ADMIN_IMAGE_TAG` y
+guarda una copia en `backups-antes-deploy/`. Logs y marcadores son persistentes.
+Si existe `.deployed-sha`, antes del cambio se preparan Compose y scripts del
+`PREVIOUS_SHA` exacto para rollback, junto a su imagen. Tras un fallo, el
+marcador anterior solo se repone si health local, health público y runtime
+config vuelven a pasar. Si no existe `.deployed-sha`, el primer deploy puede
+avanzar, pero no hay versión previa verificable: un fallo deja `.failed-sha`
+del candidato, no escribe `.deployed-sha` y requiere intervención manual; no
+deduce un SHA anterior a partir del alias `:develop` o `:master`.
+Si un `PREVIOUS_SHA` existe pero su commit no contiene la allowlist completa o
+su imagen SHA no está disponible, el deploy se detiene antes de tocar el
+runtime: no hay rollback exacto verificable. Esto afecta a commits antiguos
+anteriores a los scripts de CD y requiere resolver esa migración por separado.
+
 `develop` usa GitHub Environment `development` y concurrencia
 `admin-development` con cancelación del run anterior. `master` usa
-`production` y `admin-production` sin cancelación. Los pollers validan health
-local y público y comprueban con `jq` el `apiUrl` servido por nginx en localhost
+`production` y `admin-production` sin cancelación. El deploy valida health
+local y público y comprueba con `jq` el `apiUrl` servido por nginx en localhost
 antes de escribir `.deployed-sha`. El host de CD necesita `jq` instalado.
+El harness local de CD se ejecuta con `bash scripts/cd.test.sh`.

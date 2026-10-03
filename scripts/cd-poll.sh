@@ -9,6 +9,7 @@ case "${DEPLOY_ENV}" in
   *) echo "DEPLOY_ENV debe ser dev o prod" >&2; exit 2 ;;
 esac
 
+PROJECT_DIR="${CD_PROJECT_DIR:-${PROJECT_DIR}}"
 cd "${PROJECT_DIR}"
 deployed="$(cat .deployed-sha 2>/dev/null || true)"
 failed="$(cat .failed-sha 2>/dev/null || true)"
