@@ -2,7 +2,7 @@ import { Injectable, signal, computed } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { Observable, tap, catchError, throwError, of, firstValueFrom } from 'rxjs';
-import { environment } from '../../../environments/environment';
+import { RuntimeConfigService } from '../config/runtime-config.service';
 import {
   AdminLoginRequest,
   AdminLoginResponse,
@@ -12,7 +12,9 @@ import {
 
 @Injectable({ providedIn: 'root' })
 export class AdminAuthService {
-  private readonly apiUrl = `${environment.apiUrl}/api/admin/auth`;
+  private get apiUrl(): string {
+    return `${this.runtimeConfig.apiUrl}/api/admin/auth`;
+  }
 
   private readonly _session = signal<AdminSession | null>(null);
   private readonly _initialized = signal(false);
@@ -31,6 +33,7 @@ export class AdminAuthService {
   constructor(
     private http: HttpClient,
     private router: Router,
+    private runtimeConfig: RuntimeConfigService,
   ) {}
 
   initialize(): Promise<void> {

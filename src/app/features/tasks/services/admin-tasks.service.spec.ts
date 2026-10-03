@@ -2,6 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting, HttpTestingController } from '@angular/common/http/testing';
 import { AdminTasksService } from './admin-tasks.service';
+import { RuntimeConfigService } from '../../../core/config/runtime-config.service';
 import { environment } from '../../../../environments/environment';
 
 describe('AdminTasksService', () => {
@@ -12,7 +13,12 @@ describe('AdminTasksService', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      providers: [AdminTasksService, provideHttpClient(), provideHttpClientTesting()],
+      providers: [
+        AdminTasksService,
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        { provide: RuntimeConfigService, useValue: { apiUrl: environment.apiUrl } },
+      ],
     });
     service = TestBed.inject(AdminTasksService);
     httpMock = TestBed.inject(HttpTestingController);

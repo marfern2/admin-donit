@@ -1,5 +1,7 @@
 # AdminDonit
 
+La configuración LOCAL/DEV/PROD y los comandos están documentados en [ENVIRONMENTS.md](ENVIRONMENTS.md). `npm start` carga la API local desde `public/config/runtime-config.json`; la misma imagen Docker sirve DEV y PROD mediante `DONIT_API_URL` inyectada al arrancar.
+
 This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 21.2.24.
 
 ## Development server
@@ -28,13 +30,15 @@ ng generate --help
 
 ## Building
 
-To build the project run:
+For a local development build, run:
 
 ```bash
-ng build
+npm run build
 ```
 
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
+For the environment-independent production image bundle, run `npm run build:image`. Both commands write artifacts to `dist/`. Angular framework and compiler packages are aligned at the compatible 21.2.25 patch level; this does not address the separate tooling advisories reported by `npm audit`.
+
+Security gate: CI runs strict `npm audit --omit=dev --audit-level=high` and `node scripts/audit-dependencies.mjs`. The latter temporarily allows only [GHSA-ch52-4w7c-c8xp](https://github.com/advisories/GHSA-ch52-4w7c-c8xp) in Angular CLI DEV tooling because `http-cache-semantics` has no patched release. A published fix or compatible audit fix blocks the gate so the exception can be removed.
 
 ## Running unit tests
 

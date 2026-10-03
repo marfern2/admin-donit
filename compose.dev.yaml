@@ -1,0 +1,23 @@
+name: admin-donit-dev
+
+services:
+  frontend:
+    image: ghcr.io/marfern2/admin-donit:${ADMIN_IMAGE_TAG:-develop}
+    container_name: admin-donit-dev
+    restart: unless-stopped
+    environment:
+      DONIT_API_URL: ${DONIT_API_URL:?DONIT_API_URL debe configurarse para DEV}
+      DONIT_EXPECTED_API_URL: https://donit-api-dev.marfern.dev
+    ports:
+      - '127.0.0.1:${ADMIN_PORT:-8083}:80'
+    healthcheck:
+      test: ['CMD', 'wget', '--spider', '-q', 'http://127.0.0.1/health']
+      interval: 30s
+      timeout: 3s
+      start_period: 5s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: '10m'
+        max-file: '3'
