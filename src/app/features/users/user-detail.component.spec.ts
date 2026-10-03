@@ -4,6 +4,7 @@ import { provideHttpClientTesting, HttpTestingController } from '@angular/common
 import { provideRouter, ActivatedRoute } from '@angular/router';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { UserDetailComponent } from './user-detail.component';
+import { RuntimeConfigService } from '../../core/config/runtime-config.service';
 import { environment } from '../../../environments/environment';
 
 describe('UserDetailComponent', () => {
@@ -114,6 +115,7 @@ describe('UserDetailComponent', () => {
         provideHttpClient(),
         provideHttpClientTesting(),
         provideRouter([]),
+        { provide: RuntimeConfigService, useValue: { apiUrl: environment.apiUrl } },
         { provide: ActivatedRoute, useValue: createActivatedRoute() },
       ],
     }).compileComponents();
@@ -364,6 +366,7 @@ describe('UserDetailComponent', () => {
         provideHttpClient(),
         provideHttpClientTesting(),
         provideRouter([]),
+        { provide: RuntimeConfigService, useValue: { apiUrl: environment.apiUrl } },
         { provide: ActivatedRoute, useValue: createActivatedRoute({ tab: 'tasks' }) },
       ],
     }).compileComponents();
@@ -394,6 +397,7 @@ describe('UserDetailComponent', () => {
         provideHttpClient(),
         provideHttpClientTesting(),
         provideRouter([]),
+        { provide: RuntimeConfigService, useValue: { apiUrl: environment.apiUrl } },
         { provide: ActivatedRoute, useValue: createActivatedRoute({ tab: 'task-types' }) },
       ],
     }).compileComponents();

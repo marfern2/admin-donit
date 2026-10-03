@@ -5,6 +5,7 @@ import { provideRouter, Router } from '@angular/router';
 import { ActivatedRoute } from '@angular/router';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { TaskDetailComponent } from './task-detail.component';
+import { RuntimeConfigService } from '../../core/config/runtime-config.service';
 import { environment } from '../../../environments/environment';
 
 describe('TaskDetailComponent', () => {
@@ -45,6 +46,7 @@ describe('TaskDetailComponent', () => {
         provideHttpClient(),
         provideHttpClientTesting(),
         provideRouter([]),
+        { provide: RuntimeConfigService, useValue: { apiUrl: environment.apiUrl } },
         { provide: ActivatedRoute, useValue: mockActivatedRoute },
       ],
     }).compileComponents();

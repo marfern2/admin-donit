@@ -38,6 +38,15 @@ yarn-error.log
 testem.log
 /typings
 __screenshots__/
+.env
+.env.*
+!.env.example
+!.env.dev.example
+.deployed-sha
+.failed-sha
+.cd-deploy.lock
+logs/
+backups-antes-deploy/
 
 # System files
 .DS_Store

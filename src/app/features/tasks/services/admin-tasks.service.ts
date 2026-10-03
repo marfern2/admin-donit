@@ -1,13 +1,16 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { environment } from '../../../../environments/environment';
+import { RuntimeConfigService } from '../../../core/config/runtime-config.service';
 import { AdminPage } from '../../../shared/models/admin-page.model';
 import { AdminTaskSummary, AdminTaskDetail, TaskListParams } from '../models/admin-task.model';
 
 @Injectable({ providedIn: 'root' })
 export class AdminTasksService {
-  private readonly apiUrl = `${environment.apiUrl}/api/admin/tasks`;
+  private readonly runtimeConfig = inject(RuntimeConfigService);
+  private get apiUrl(): string {
+    return `${this.runtimeConfig.apiUrl}/api/admin/tasks`;
+  }
 
   constructor(private http: HttpClient) {}
 

@@ -4,6 +4,7 @@ import { provideHttpClientTesting, HttpTestingController } from '@angular/common
 import { provideRouter } from '@angular/router';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { UsersComponent } from './users.component';
+import { RuntimeConfigService } from '../../core/config/runtime-config.service';
 import { environment } from '../../../environments/environment';
 
 describe('UsersComponent', () => {
@@ -35,7 +36,12 @@ describe('UsersComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [UsersComponent, NoopAnimationsModule],
-      providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])],
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        provideRouter([]),
+        { provide: RuntimeConfigService, useValue: { apiUrl: environment.apiUrl } },
+      ],
     }).compileComponents();
 
     fixture = TestBed.createComponent(UsersComponent);

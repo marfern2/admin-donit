@@ -1,0 +1,32 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [develop, master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Runtime dependency security gate
+        run: npm audit --omit=dev --audit-level=high
+      - name: Full dependency security gate
+        run: node scripts/audit-dependencies.mjs
+      - name: Audit gate tests
+        run: npm run test:audit
+      - name: Tests
+        run: npm test -- --watch=false
+      - name: Build environment-neutral image bundle
+        run: npm run build:image
