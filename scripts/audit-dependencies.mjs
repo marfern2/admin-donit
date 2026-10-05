@@ -9,6 +9,9 @@ const ALLOWED_ID = 'GHSA-ch52-4w7c-c8xp';
 const ALLOWED_PACKAGE = 'http-cache-semantics';
 const TOOLING_ROOT = '@angular/cli';
 const BLOCKING_LEVELS = new Set(['high', 'critical']);
+// GHSA-ch52-4w7c-c8xp still lists no patched version. The published 4.3.0
+// leaves its vulnerable max-stale path unchanged. Recheck any later stable release.
+const VERIFIED_UNPATCHED_RELEASES = new Set(['4.3.0']);
 
 function npmJson(args, acceptedStatuses = [0]) {
   const result = spawnSync('npm', args, {
@@ -56,9 +59,40 @@ function isAllowedOrigin(origin) {
   );
 }
 
-function hasCompatibleFix(fixAvailable) {
+function isKnownUnpatchedAuditFix(name, fixAvailable, range, publishedVersions) {
+  return (
+    name === ALLOWED_PACKAGE &&
+    fixAvailable === true &&
+    semver.validRange(range) &&
+    Array.isArray(publishedVersions) &&
+    publishedVersions.length > 0 &&
+    publishedVersions.every((version) => semver.valid(version)) &&
+    publishedVersions.some(
+      (version) => VERIFIED_UNPATCHED_RELEASES.has(version) && !semver.satisfies(version, range),
+    ) &&
+    publishedVersions.every(
+      (version) =>
+        semver.prerelease(version) ||
+        semver.satisfies(version, range) ||
+        VERIFIED_UNPATCHED_RELEASES.has(version),
+    )
+  );
+}
+
+function hasCompatibleFix(name, fixAvailable, range, publishedVersions) {
   if (fixAvailable === false) return false;
-  return fixAvailable === true || fixAvailable?.isSemVerMajor !== true;
+  if (isKnownUnpatchedAuditFix(name, fixAvailable, range, publishedVersions)) return false;
+  if (
+    fixAvailable &&
+    typeof fixAvailable === 'object' &&
+    !Array.isArray(fixAvailable) &&
+    typeof fixAvailable.name === 'string' &&
+    semver.valid(fixAvailable.version) &&
+    fixAvailable.isSemVerMajor === true
+  ) {
+    return false;
+  }
+  return true;
 }
 
 export function evaluateAudit({ audit, fullTree, productionTree, lock, publishedVersions }) {
@@ -95,7 +129,7 @@ export function evaluateAudit({ audit, fullTree, productionTree, lock, published
       blocking.push(`${name}: unapproved high/critical advisory`);
       continue;
     }
-    if (hasCompatibleFix(finding.fixAvailable)) {
+    if (hasCompatibleFix(name, finding.fixAvailable, origins[0].range, publishedVersions)) {
       blocking.push(`${name}: a compatible fix is available or fix status is unknown`);
       continue;
     }
@@ -141,7 +175,10 @@ export function evaluateAudit({ audit, fullTree, productionTree, lock, published
       blocking.push(`${ALLOWED_ID}: cannot verify published versions`);
     } else if (
       publishedVersions.some(
-        (version) => !semver.prerelease(version) && !semver.satisfies(version, allowedOrigin.range),
+        (version) =>
+          !semver.prerelease(version) &&
+          !semver.satisfies(version, allowedOrigin.range) &&
+          !VERIFIED_UNPATCHED_RELEASES.has(version),
       )
     ) {
       blocking.push(`${ALLOWED_ID}: a patched version is published; remove the exception`);

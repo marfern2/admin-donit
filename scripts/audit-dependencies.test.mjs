@@ -109,6 +109,43 @@ test('mismo advisory con fix compatible indicado por npm audit: FAIL', () => {
   assert.match(evaluateAudit(data).blocking.join(' '), /compatible fix/);
 });
 
+test('audit propone fix=true por 4.3.0, version publicada sin corregir: PASS', () => {
+  const data = fixture();
+  data.audit.vulnerabilities = {
+    'http-cache-semantics': {
+      severity: 'high',
+      via: [advisory],
+      fixAvailable: true,
+    },
+  };
+  data.audit.metadata.vulnerabilities.high = 1;
+  data.publishedVersions.push('4.3.0');
+  assert.deepEqual(evaluateAudit(data), { allowed: ['http-cache-semantics'], blocking: [] });
+});
+
+test('audit propone fix=true y aparece otra version estable: FAIL', () => {
+  const data = fixture();
+  data.audit.vulnerabilities['http-cache-semantics'].fixAvailable = true;
+  data.publishedVersions.push('4.3.0', '4.3.1');
+  assert.match(evaluateAudit(data).blocking.join(' '), /compatible fix|patched version is published/);
+});
+
+test('audit propone fix=true pero falta metadata de versiones: FAIL', () => {
+  const data = fixture();
+  data.audit.vulnerabilities['http-cache-semantics'].fixAvailable = true;
+  data.publishedVersions = undefined;
+  assert.match(evaluateAudit(data).blocking.join(' '), /compatible fix|cannot verify published versions/);
+});
+
+test('formato incompleto de fixAvailable: FAIL cerrado', () => {
+  const data = fixture();
+  data.audit.vulnerabilities['http-cache-semantics'].fixAvailable = {
+    isSemVerMajor: true,
+  };
+  data.publishedVersions.push('4.3.0');
+  assert.match(evaluateAudit(data).blocking.join(' '), /compatible fix/);
+});
+
 test('patch publicado en el registro: FAIL aunque audit aun proponga un major', () => {
   const data = fixture();
   data.publishedVersions.push('4.2.1');
