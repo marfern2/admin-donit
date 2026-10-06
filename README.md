@@ -1,63 +1,54 @@
-# AdminDonit
+# Donit — Admin
 
-La configuración LOCAL/DEV/PROD y los comandos están documentados en [ENVIRONMENTS.md](ENVIRONMENTS.md). `npm start` carga la API local desde `public/config/runtime-config.json`; la misma imagen Docker sirve DEV y PROD mediante `DONIT_API_URL` inyectada al arrancar.
+Donit es una aplicación de gestión de tareas formada por una API Spring Boot, este panel de administración Angular y una aplicación Android Kotlin/Compose. Este repositorio permite al administrador iniciar sesión y gestionar usuarios, tareas y tipos de tarea, incluido habilitar o deshabilitar usuarios.
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 21.2.24.
+## Stack y arquitectura
 
-## Development server
+- Angular 21 y Angular Material.
+- nginx sirve el frontend y `/health`; Docker y GHCR distribuyen la imagen.
+- La API ofrece autenticación de administrador separada de la de usuarios Android.
+- La misma imagen sirve DEV y PROD. Al arrancar, `DONIT_API_URL` genera `/config/runtime-config.json`; Angular lo carga y valida antes de iniciar.
 
-To start a local development server, run:
+## Entornos
 
-```bash
-ng serve
-```
+| Entorno | Admin | API | Puerto Admin en el host |
+|---|---|---|---|
+| LOCAL | `http://localhost:4200` | `http://localhost:8080` | `4200` |
+| DEV | `https://admin-dev.marfern.dev` | `https://donit-api-dev.marfern.dev` | `127.0.0.1:8083` |
+| PROD | `https://admin-donit.marfern.dev` | `https://donit-api.marfern.dev` | `127.0.0.1:8081` |
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+DEV y PROD tienen configuración runtime y despliegues separados. La URL de API se decide al arrancar el contenedor, no durante el build. Detalles en [ENVIRONMENTS.md](ENVIRONMENTS.md).
 
-## Code scaffolding
+## Ejecución local
 
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
-
-```bash
-ng generate component component-name
-```
-
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
-
-```bash
-ng generate --help
-```
-
-## Building
-
-For a local development build, run:
+Con Node.js 22 y npm:
 
 ```bash
-npm run build
+npm ci
+npm start
 ```
 
-For the environment-independent production image bundle, run `npm run build:image`. Both commands write artifacts to `dist/`. Angular framework and compiler packages are aligned at the compatible 21.2.25 patch level; this does not address the separate tooling advisories reported by `npm audit`.
+Abrir `http://localhost:4200`. El servidor de desarrollo lee `public/config/runtime-config.json`, que apunta a la API local. Para generar el bundle de la imagen: `npm run build:image` (salida en `dist/`). Configuración Docker y comprobaciones manuales en [DEPLOYMENT.md](DEPLOYMENT.md).
 
-Security gate: CI runs strict `npm audit --omit=dev --audit-level=high` and `node scripts/audit-dependencies.mjs`. The latter temporarily allows only [GHSA-ch52-4w7c-c8xp](https://github.com/advisories/GHSA-ch52-4w7c-c8xp) in Angular CLI DEV tooling because `http-cache-semantics` has no patched release. A published fix or compatible audit fix blocks the gate so the exception can be removed.
-
-## Running unit tests
-
-To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:
+## Tests
 
 ```bash
-ng test
+npm test -- --watch=false
+npm run test:audit
 ```
 
-## Running end-to-end tests
+CI también ejecuta controles de dependencias y construye el bundle independiente del entorno.
 
-For end-to-end (e2e) testing, run:
+## CI/CD
 
-```bash
-ng e2e
-```
+`feature/*` se integra en `develop` para DEV; `develop` se promueve a `master` para PROD. GitHub Actions publica `ghcr.io/marfern2/admin-donit:<SHA40>`. Pollers systemd seleccionan el commit y usan imagen y artefactos operativos del mismo SHA, sin depender de que el working tree del servidor esté limpio. El despliegue valida contenedor healthy, `/health`, URL de API exacta en runtime config e imagen SHA40 antes de escribir `.deployed-sha`; en éxito no queda `.failed-sha`.
 
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
+La allowlist de artefactos incluye Compose, `scripts/cd-poll.sh` y `scripts/cd-deploy.sh`. Procedimiento y rollback en [ENVIRONMENTS.md](ENVIRONMENTS.md).
 
-## Additional Resources
+## Seguridad
 
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+El panel usa la autenticación de administrador del backend. `/config/runtime-config.json` solo contiene la URL pública de API: no admite secretos. Cada entorno exige su propia `DONIT_API_URL` y comprueba que corresponde a DEV o PROD. CI aplica `npm audit --omit=dev --audit-level=high` y el gate completo de `scripts/audit-dependencies.mjs`. Este último mantiene una excepción temporal y específica para [GHSA-ch52-4w7c-c8xp](https://github.com/advisories/GHSA-ch52-4w7c-c8xp) en tooling de desarrollo. No se versionan credenciales ni tokens.
+
+## Estado
+
+Admin DEV y PROD operativos; CD de ambos entornos operativo.
