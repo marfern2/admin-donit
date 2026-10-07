@@ -7,3 +7,8 @@ export interface AdminPage<T> {
   first: boolean;
   last: boolean;
 }
+
+export function isAdminPage<T>(value: AdminPage<T> | null | undefined): value is AdminPage<T> {
+  return value !== null && value !== undefined && Array.isArray(value.content)
+    && typeof value.totalElements === 'number';
+}

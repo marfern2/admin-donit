@@ -4,11 +4,11 @@ La imagen Angular es independiente del entorno. Al arrancar, el contenedor
 genera `/config/runtime-config.json` desde `DONIT_API_URL`; Angular bloquea su
 bootstrap hasta cargar y validar ese fichero.
 
-| Contexto | Comando/configuración | API |
-|---|---|---|
-| LOCAL | `npm start` | `http://localhost:8080` desde `public/config/runtime-config.json` |
-| DEV | misma imagen Docker + `.env` DEV | `https://donit-api-dev.marfern.dev` |
-| PROD | misma imagen Docker + `.env` PROD | `https://donit-api.marfern.dev` |
+| Entorno | Admin | API | Configuración |
+|---|---|---|---|
+| LOCAL | `http://localhost:4200` | `http://localhost:8080` | `npm start`, `public/config/runtime-config.json` |
+| DEV | `https://admin-dev.marfern.dev` | `https://donit-api-dev.marfern.dev` | misma imagen Docker, `.env` DEV |
+| PROD | `https://admin-donit.marfern.dev` | `https://donit-api.marfern.dev` | misma imagen Docker, `.env` PROD |
 
 `runtime-config.json` solo contiene configuración pública. No admite HTTP
 fuera de localhost y se sirve con `Cache-Control: no-store`. Si falta o es
@@ -21,7 +21,7 @@ muestran los valores respectivos; no contienen secretos. Cada Compose fija adem�
 ## Docker
 
 ```bash
-# Bootstrap DEV local/server antes de disponer de GHCR
+# Solo para un bootstrap local con build de imagen; el CD normal usa GHCR
 docker compose -f compose.dev.yaml -f compose.build.yaml --env-file .env up -d --build
 
 # Operación normal desde GHCR
@@ -33,6 +33,8 @@ docker compose -f compose.yaml --env-file .env up -d
 
 DEV escucha solo en `127.0.0.1:8083`; PROD en `127.0.0.1:8081`. Ambos exponen
 `/health` y guardan estados de despliegue independientes.
+El servicio Compose se llama `frontend`; los contenedores son `admin-donit-dev`
+en DEV y `admin-donit` en PROD.
 
 ## Imagen y CD
 

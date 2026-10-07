@@ -74,14 +74,6 @@ export interface TaskTypeFormDialogData {
     </mat-dialog-actions>
   `,
   styles: `
-    .dialog-form {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-    .full-width {
-      width: 100%;
-    }
     .color-field {
       display: flex;
       flex-direction: column;
@@ -90,11 +82,12 @@ export interface TaskTypeFormDialogData {
     }
     .color-input {
       width: 60px;
-      height: 40px;
-      border: 1px solid #ccc;
-      border-radius: 4px;
+      height: 44px;
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-sm);
       cursor: pointer;
       padding: 2px;
+      background: var(--surface);
     }
   `,
 })

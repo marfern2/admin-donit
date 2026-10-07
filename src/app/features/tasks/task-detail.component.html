@@ -7,11 +7,11 @@
   </div>
 
   @if (error()) {
-    <div class="error-banner" role="alert">{{ error() }}</div>
+    <div class="error-banner" role="alert"><span>{{ error() }}</span><button mat-button type="button" (click)="loadTask()">Reintentar</button></div>
   }
 
   @if (loading()) {
-    <div class="loading-container">
+    <div class="loading-container" role="status" aria-label="Cargando tarea">
       <mat-spinner diameter="40"></mat-spinner>
     </div>
   } @else if (task()) {

@@ -7,11 +7,11 @@
   </div>
 
   @if (userError()) {
-    <div class="error-banner" role="alert">{{ userError() }}</div>
+    <div class="error-banner" role="alert"><span>{{ userError() }}</span><button mat-button type="button" (click)="loadUser()">Reintentar</button></div>
   }
 
   @if (userLoading()) {
-    <div class="loading-container">
+    <div class="loading-container" role="status" aria-label="Cargando usuario">
       <mat-spinner diameter="40"></mat-spinner>
     </div>
   } @else if (user()) {
@@ -133,17 +133,18 @@
           </div>
 
           @if (tasksError()) {
-            <div class="error-banner" role="alert">{{ tasksError() }}</div>
+            <div class="error-banner" role="alert"><span>{{ tasksError() }}</span><button mat-button type="button" (click)="loadTasks()">Reintentar</button></div>
           }
 
           @if (tasksLoading()) {
-            <div class="loading-container">
+            <div class="loading-container" role="status" aria-label="Cargando tareas del usuario">
               <mat-spinner diameter="40"></mat-spinner>
             </div>
           } @else if (tasks().length === 0) {
             <div class="empty-state">Este usuario no tiene tareas.</div>
           } @else {
-            <div class="table-container">
+            <div class="data-panel">
+            <div class="table-container" tabindex="0" role="region" aria-label="Tabla de tareas del usuario, desplazable horizontalmente">
               <table mat-table [dataSource]="tasks()">
                 <ng-container matColumnDef="id">
                   <th mat-header-cell *matHeaderCellDef>ID</th>
@@ -211,7 +212,12 @@
                 <tr mat-row *matRowDef="let row; columns: taskColumns"></tr>
               </table>
 
+              </div>
+
+              <p class="table-hint">Desliza la tabla horizontalmente para ver todas las columnas.</p>
+
               <mat-paginator
+                aria-label="Páginas de tareas del usuario"
                 [length]="tasksTotal()"
                 [pageSize]="tasksSize()"
                 [pageIndex]="tasksPage()"
@@ -235,17 +241,18 @@
           </div>
 
           @if (taskTypesError()) {
-            <div class="error-banner" role="alert">{{ taskTypesError() }}</div>
+            <div class="error-banner" role="alert"><span>{{ taskTypesError() }}</span><button mat-button type="button" (click)="loadTaskTypes()">Reintentar</button></div>
           }
 
           @if (taskTypesLoading()) {
-            <div class="loading-container">
+            <div class="loading-container" role="status" aria-label="Cargando tipos de tarea del usuario">
               <mat-spinner diameter="40"></mat-spinner>
             </div>
           } @else if (taskTypes().length === 0) {
             <div class="empty-state">Este usuario no tiene tipos de tarea.</div>
           } @else {
-            <div class="table-container">
+            <div class="data-panel">
+            <div class="table-container" tabindex="0" role="region" aria-label="Tabla de tipos de tarea del usuario, desplazable horizontalmente">
               <table mat-table [dataSource]="taskTypes()">
                 <ng-container matColumnDef="id">
                   <th mat-header-cell *matHeaderCellDef>ID</th>
@@ -300,7 +307,12 @@
                 <tr mat-row *matRowDef="let row; columns: taskTypeColumns"></tr>
               </table>
 
+              </div>
+
+              <p class="table-hint">Desliza la tabla horizontalmente para ver todas las columnas.</p>
+
               <mat-paginator
+                aria-label="Páginas de tipos de tarea del usuario"
                 [length]="taskTypesTotal()"
                 [pageSize]="taskTypesSize()"
                 [pageIndex]="taskTypesPage()"

@@ -1,5 +1,3 @@
-@use '../../shared/shared';
-
 .users-container {
   max-width: 1200px;
 }

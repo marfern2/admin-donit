@@ -1,0 +1,8 @@
+.login-container { display: grid; place-items: center; min-height: 100dvh; padding: 24px; background: var(--background); }
+.login-card { width: min(100%, 440px); padding: clamp(24px, 4vw, 38px); }
+.login-card mat-card-header { margin-block-end: 28px; }
+.login-card mat-card-title { font-size: var(--text-xl); letter-spacing: -.045em; font-weight: 750; }
+.login-card mat-card-subtitle { color: var(--text-muted); }
+.full-width { width: 100%; margin-block-end: 8px; }
+.submit-btn { margin-block-start: 14px; min-height: 48px; border-radius: var(--radius-md); font-weight: 700; }
+.error-banner { justify-content: center; text-align: center; }

@@ -3,6 +3,9 @@ import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting, HttpTestingController } from '@angular/common/http/testing';
 import { provideRouter, ActivatedRoute } from '@angular/router';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { MatDialog } from '@angular/material/dialog';
+import { MatSnackBar } from '@angular/material/snack-bar';
+import { of } from 'rxjs';
 import { UserDetailComponent } from './user-detail.component';
 import { RuntimeConfigService } from '../../core/config/runtime-config.service';
 import { environment } from '../../../environments/environment';
@@ -439,5 +442,27 @@ describe('UserDetailComponent', () => {
     reloadReq.flush(mockTasksResponse);
     const userReq = httpMock.expectOne(`${apiUrl}/1`);
     userReq.flush(mockUser);
+  });
+
+  it('shows the conflict message when editing a duplicate username', () => {
+    flushAll();
+    const dialog = TestBed.inject(MatDialog);
+    const snackBar = TestBed.inject(MatSnackBar);
+    vi.spyOn(dialog, 'open').mockReturnValue({ afterClosed: () => of({ username: 'taken', email: 'test@test.com' }) } as never);
+    const notification = vi.spyOn(snackBar, 'open').mockReturnValue({} as never);
+
+    component.openEditUserDialog();
+    httpMock.expectOne(`${apiUrl}/1`).flush('Conflict', { status: 409, statusText: 'Conflict' });
+
+    expect(notification).toHaveBeenCalledWith('El nombre de usuario o email ya está en uso.', 'Cerrar', { duration: 4000 });
+  });
+
+  it('does not delete a user when confirmation is cancelled', () => {
+    flushAll();
+    const dialog = TestBed.inject(MatDialog);
+    vi.spyOn(dialog, 'open').mockReturnValue({ afterClosed: () => of(false) } as never);
+
+    component.deleteUser();
+    httpMock.expectNone((request) => request.method === 'DELETE');
   });
 });

@@ -374,6 +374,19 @@ describe('TasksComponent', () => {
     expect(req.request.params.get('size')).toBe('10');
   });
 
+  it('applies ID and urgency filters after keyboard edits', async () => {
+    flushAllOnInit();
+    component.userIdCtrl.setValue(7);
+    await new Promise((resolve) => setTimeout(resolve, 350));
+    const byUser = flushTasksRequest();
+    expect(byUser.request.params.get('userId')).toBe('7');
+
+    component.urgencyCtrl.setValue('2');
+    await new Promise((resolve) => setTimeout(resolve, 350));
+    const byUrgency = flushTasksRequest();
+    expect(byUrgency.request.params.get('urgency')).toBe('2');
+  });
+
   it('should handle sort on sortable columns', () => {
     flushAllOnInit();
 

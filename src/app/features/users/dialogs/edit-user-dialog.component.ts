@@ -66,16 +66,6 @@ export interface EditUserData {
       </button>
     </mat-dialog-actions>
   `,
-  styles: `
-    .dialog-form {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-    .full-width {
-      width: 100%;
-    }
-  `,
 })
 export class EditUserDialogComponent {
   private readonly fb = inject(NonNullableFormBuilder);
