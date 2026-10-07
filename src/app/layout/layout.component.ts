@@ -6,9 +6,12 @@ import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatListModule } from '@angular/material/list';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
+import { MatMenuModule } from '@angular/material/menu';
 import { filter, map } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { AdminAuthService } from '../core/auth/auth.service';
+import { ThemePreference, ThemeService } from '../core/theme/theme.service';
+import { RuntimeConfigService } from '../core/config/runtime-config.service';
 
 @Component({
   selector: 'app-layout',
@@ -22,12 +25,15 @@ import { AdminAuthService } from '../core/auth/auth.service';
     MatListModule,
     MatButtonModule,
     MatIconModule,
+    MatMenuModule,
   ],
   templateUrl: './layout.component.html',
-  styleUrl: './layout.component.scss',
+  styleUrl: './layout.component.css',
 })
 export class LayoutComponent implements OnInit {
   readonly authService = inject(AdminAuthService);
+  readonly theme = inject(ThemeService);
+  private readonly runtimeConfig = inject(RuntimeConfigService);
   private readonly router = inject(Router);
   private readonly breakpointObserver = inject(BreakpointObserver);
   private readonly destroyRef = inject(DestroyRef);
@@ -35,11 +41,19 @@ export class LayoutComponent implements OnInit {
   readonly sidenav = signal(false);
   readonly isMobile = signal(false);
   readonly pageTitle = signal('Panel de Administración');
+  readonly environmentLabel = (() => {
+    try {
+      const host = new URL(this.runtimeConfig.apiUrl).hostname;
+      return host.split('.')[0].endsWith('-dev') || ['localhost', '127.0.0.1', '10.0.2.2'].includes(host) ? 'DEV' : 'PROD';
+    } catch { return 'DEV'; }
+  })();
 
   private readonly routeTitles: Record<string, string> = {
+    dashboard: 'Dashboard',
     users: 'Usuarios',
     tasks: 'Tareas',
     'task-types': 'Tipos de tarea',
+    settings: 'Configuración',
   };
 
   ngOnInit(): void {
@@ -79,8 +93,14 @@ export class LayoutComponent implements OnInit {
     }
   }
 
+  setTheme(value: string): void {
+    if (value === 'light' || value === 'dark' || value === 'system') {
+      this.theme.setPreference(value as ThemePreference);
+    }
+  }
+
   private updateTitle(url: string): void {
-    const segments = url.split('/').filter(Boolean);
+    const segments = url.split(/[?#]/, 1)[0].split('/').filter(Boolean);
     const lastSegment = segments[segments.length - 1];
 
     if (lastSegment && /^\d+$/.test(lastSegment) && segments.length >= 2) {

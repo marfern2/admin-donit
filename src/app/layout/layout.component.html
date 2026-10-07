@@ -3,51 +3,79 @@
     #sidenavRef
     [mode]="isMobile() ? 'over' : 'side'"
     [opened]="isMobile() ? sidenav() : true"
+    [fixedInViewport]="isMobile()"
     (closedStart)="sidenav.set(false)"
     class="layout-sidenav"
   >
-    <div class="sidenav-header">
-      <span class="brand">Donit Admin</span>
-    </div>
-    <mat-nav-list>
-      <a
-        mat-list-item
-        routerLink="/users"
-        routerLinkActive="active-link"
-        (click)="closeSidenav()"
-        aria-label="Usuarios"
-      >
-        <mat-icon matListItemIcon>people</mat-icon>
-        <span matListItemTitle>Usuarios</span>
+    <div class="sidebar-inner">
+      <a class="brand" routerLink="/dashboard" (click)="closeSidenav()" aria-label="Donit Admin, ir al dashboard">
+        <span class="brand-mark" aria-hidden="true"><mat-icon>check_circle</mat-icon></span>
+        <span class="brand-copy"><strong>donit</strong><small>ADMIN CONSOLE</small></span>
       </a>
-    </mat-nav-list>
+      <div class="nav-caption">ESPACIO DE TRABAJO</div>
+      <nav aria-label="Navegación principal">
+        <mat-nav-list>
+          <a mat-list-item routerLink="/dashboard" routerLinkActive="active-link" [routerLinkActiveOptions]="{ exact: true }" (click)="closeSidenav()" aria-label="Dashboard">
+            <mat-icon matListItemIcon>dashboard</mat-icon><span matListItemTitle>Dashboard</span>
+          </a>
+          <a mat-list-item routerLink="/users" routerLinkActive="active-link" (click)="closeSidenav()" aria-label="Usuarios">
+            <mat-icon matListItemIcon>group</mat-icon><span matListItemTitle>Usuarios</span>
+          </a>
+          <a mat-list-item routerLink="/tasks" routerLinkActive="active-link" (click)="closeSidenav()" aria-label="Tareas">
+            <mat-icon matListItemIcon>task_alt</mat-icon><span matListItemTitle>Tareas</span>
+          </a>
+          <a mat-list-item routerLink="/task-types" routerLinkActive="active-link" (click)="closeSidenav()" aria-label="Tipos de tarea">
+            <mat-icon matListItemIcon>category</mat-icon><span matListItemTitle>Tipos de tarea</span>
+          </a>
+        </mat-nav-list>
+      </nav>
+      <div class="sidebar-spacer"></div>
+      <div class="sidebar-footer">
+        <a mat-list-item routerLink="/settings" routerLinkActive="active-link" (click)="closeSidenav()" aria-label="Configuración">
+          <mat-icon>settings</mat-icon><span>Configuración</span>
+        </a>
+        <button type="button" class="footer-action" (click)="authService.logout()" aria-label="Cerrar sesión">
+          <mat-icon>logout</mat-icon><span>Cerrar sesión</span>
+        </button>
+        <div class="sidebar-meta">Donit Admin <span>2.0</span></div>
+      </div>
+    </div>
   </mat-sidenav>
 
   <mat-sidenav-content class="layout-content">
-    <mat-toolbar color="primary" class="layout-toolbar">
-      @if (isMobile()) {
-        <button
-          mat-icon-button
-          (click)="toggleSidenav()"
-          aria-label="Abrir menú de navegación"
-        >
-          <mat-icon>menu</mat-icon>
+    <header class="layout-toolbar">
+      <div class="toolbar-left">
+        @if (isMobile()) {
+          <button mat-icon-button (click)="toggleSidenav()" aria-label="Abrir menú de navegación" [attr.aria-expanded]="sidenav()">
+            <mat-icon>menu</mat-icon>
+          </button>
+        }
+        <div class="heading-group">
+          <span class="breadcrumb">Espacio de trabajo <span aria-hidden="true">/</span> {{ pageTitle() }}</span>
+          <span class="toolbar-title">{{ pageTitle() }}</span>
+        </div>
+      </div>
+      <div class="toolbar-actions">
+        <span class="environment-badge" [class.production]="environmentLabel === 'PROD'">{{ environmentLabel }}</span>
+        <label class="theme-picker">
+          <mat-icon aria-hidden="true">contrast</mat-icon>
+          <span class="sr-only">Tema visual</span>
+          <select aria-label="Tema visual" [value]="theme.preference()" (change)="setTheme($any($event.target).value)">
+            <option value="system">Sistema</option>
+            <option value="light">Claro</option>
+            <option value="dark">Oscuro</option>
+          </select>
+        </label>
+        <button mat-icon-button class="account-button" [matMenuTriggerFor]="accountMenu" aria-label="Menú de usuario">
+          <mat-icon>account_circle</mat-icon>
         </button>
-      }
-      <span class="toolbar-title">{{ pageTitle() }}</span>
-      <span class="spacer"></span>
-      <span class="user-info">{{ authService.currentUser()?.email }}</span>
-      <button
-        mat-icon-button
-        (click)="authService.logout()"
-        aria-label="Cerrar sesión"
-      >
-        <mat-icon>logout</mat-icon>
-      </button>
-    </mat-toolbar>
-
-    <div class="content-area">
-      <router-outlet />
-    </div>
+        <mat-menu #accountMenu="matMenu">
+          <div class="menu-identity">{{ authService.currentUser()?.email }}</div>
+          <button mat-menu-item routerLink="/settings"><mat-icon>settings</mat-icon><span>Configuración</span></button>
+          <button mat-menu-item (click)="authService.logout()"><mat-icon>logout</mat-icon><span>Cerrar sesión</span></button>
+        </mat-menu>
+      </div>
+    </header>
+    <main class="content-area" id="main-content"><router-outlet /></main>
   </mat-sidenav-content>
 </mat-sidenav-container>

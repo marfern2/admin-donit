@@ -1,0 +1,8 @@
+.metric-card { display: flex; flex-direction: column; min-height: 190px; padding: 22px; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface); box-shadow: var(--shadow-md); }
+.metric-top { display: flex; justify-content: space-between; align-items: flex-start; margin-block-end: 20px; }
+.metric-icon { display: grid; place-items: center; width: 42px; height: 42px; background: var(--brand-soft); color: var(--brand); border-radius: var(--radius-md); }
+.metric-label { font-size: var(--text-sm); font-weight: 600; color: var(--text-muted); }
+.metric-value { margin-block-start: 6px; color: var(--text); font-size: clamp(2rem, 3vw, 2.6rem); font-weight: 750; letter-spacing: -.055em; line-height: 1.15; }
+.metric-helper { margin-block-start: auto; padding-block-start: 12px; color: var(--text-subtle); font-size: var(--text-xs); }
+.metric-skeleton { width: 95px; height: 36px; margin-block-start: 12px; border-radius: var(--radius-sm); background: linear-gradient(100deg, var(--surface-muted) 30%, var(--border) 48%, var(--surface-muted) 66%); background-size: 220% 100%; animation: shimmer 1.6s ease-in-out infinite; }
+@keyframes shimmer { to { background-position-x: -220%; } }

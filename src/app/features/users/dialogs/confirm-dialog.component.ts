@@ -20,6 +20,7 @@ export interface ConfirmDialogData {
       <button mat-button mat-dialog-close aria-label="Cancelar">Cancelar</button>
       <button
         mat-flat-button
+        [class.danger-action]="data.warn"
         [color]="data.warn ? 'warn' : 'primary'"
         [mat-dialog-close]="true"
         aria-label="Confirmar"

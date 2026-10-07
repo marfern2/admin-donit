@@ -1,0 +1,31 @@
+<div class="dashboard">
+  <section class="hero" aria-labelledby="welcome-title">
+    <div>
+      <div class="eyebrow"><span class="eyebrow-dot"></span> PANEL DE CONTROL</div>
+      <h1 id="welcome-title">Hola, {{ auth.currentUser()?.username || 'administrador' }} <span aria-hidden="true">👋</span></h1>
+      <p>Una vista clara de tu espacio de trabajo y sus datos principales.</p>
+    </div>
+    <a class="primary-action" routerLink="/users"><mat-icon aria-hidden="true">group</mat-icon> Explorar usuarios <mat-icon aria-hidden="true">arrow_forward</mat-icon></a>
+  </section>
+
+  <section class="dashboard-section" aria-labelledby="overview-title">
+    <div class="section-heading"><div><span class="section-kicker">RESUMEN</span><h2 id="overview-title">Visión general</h2></div><span class="section-note">Datos del panel administrativo</span></div>
+    <div class="metrics-grid">
+      @for (metric of metrics(); track metric.label) { <app-metric-card [data]="metric" /> }
+    </div>
+  </section>
+
+  <section class="dashboard-section" aria-labelledby="quick-title">
+    <div class="section-heading"><div><span class="section-kicker">ACCESOS RÁPIDOS</span><h2 id="quick-title">Gestiona tu espacio</h2></div></div>
+    <div class="quick-grid">
+      <a routerLink="/users" class="quick-card"><span class="quick-icon"><mat-icon aria-hidden="true">group</mat-icon></span><span><strong>Usuarios</strong><small>Consulta perfiles y gestiona sus datos</small></span><mat-icon class="quick-arrow" aria-hidden="true">arrow_forward</mat-icon></a>
+      <a routerLink="/tasks" class="quick-card"><span class="quick-icon"><mat-icon aria-hidden="true">task_alt</mat-icon></span><span><strong>Tareas</strong><small>Explora tareas, estados y prioridades</small></span><mat-icon class="quick-arrow" aria-hidden="true">arrow_forward</mat-icon></a>
+      <a routerLink="/task-types" class="quick-card"><span class="quick-icon"><mat-icon aria-hidden="true">category</mat-icon></span><span><strong>Tipos de tarea</strong><small>Revisa las categorías disponibles</small></span><mat-icon class="quick-arrow" aria-hidden="true">arrow_forward</mat-icon></a>
+    </div>
+  </section>
+
+  <section class="activity-panel" aria-labelledby="activity-title">
+    <div class="activity-icon"><mat-icon aria-hidden="true">insights</mat-icon></div>
+    <div><h2 id="activity-title">Actividad reciente</h2><p>Estará disponible cuando el servicio ofrezca un historial de actividad. Las métricas y gráficas futuras usarán datos reales.</p></div>
+  </section>
+</div>

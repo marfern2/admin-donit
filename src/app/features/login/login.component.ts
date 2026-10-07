@@ -8,6 +8,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatCardModule } from '@angular/material/card';
 import { AdminAuthService } from '../../core/auth/auth.service';
+import { adminErrorMessage } from '../../shared/admin-error-message';
 
 @Component({
   selector: 'app-login',
@@ -22,7 +23,7 @@ import { AdminAuthService } from '../../core/auth/auth.service';
     MatCardModule,
   ],
   templateUrl: './login.component.html',
-  styleUrl: './login.component.scss',
+  styleUrl: './login.component.css',
 })
 export class LoginComponent implements AfterViewInit {
   @ViewChild('emailInput') emailInput!: ElementRef<HTMLInputElement>;
@@ -58,11 +59,13 @@ export class LoginComponent implements AfterViewInit {
 
     this.authService.login(this.loginForm.getRawValue()).subscribe({
       next: () => {
-        this.router.navigate(['/users']);
+        this.router.navigate(['/dashboard']);
       },
-      error: () => {
+      error: (error) => {
         this.loading.set(false);
-        this.errorMessage.set('Credenciales incorrectas o acceso no permitido.');
+        this.errorMessage.set(error?.status === 401
+          ? 'Credenciales incorrectas o acceso no permitido.'
+          : adminErrorMessage(error, 'No se pudo iniciar sesión. Inténtalo de nuevo más tarde.'));
       },
     });
   }

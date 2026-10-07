@@ -13,6 +13,9 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { AdminUsersService } from './services/admin-users.service';
 import { AdminPage, AdminUserSummary } from './models/admin-user.model';
+import { isAdminPage } from '../../shared/models/admin-page.model';
+import { adminErrorMessage } from '../../shared/admin-error-message';
+import { SPANISH_PAGINATOR_PROVIDER } from '../../shared/spanish-paginator-intl';
 
 @Component({
   selector: 'app-users',
@@ -28,8 +31,9 @@ import { AdminPage, AdminUserSummary } from './models/admin-user.model';
     MatIconModule,
     MatProgressSpinnerModule,
   ],
+  providers: [SPANISH_PAGINATOR_PROVIDER],
   templateUrl: './users.component.html',
-  styleUrl: './users.component.scss',
+  styleUrl: './users.component.css',
 })
 export class UsersComponent implements OnInit {
   private readonly adminUsersService = inject(AdminUsersService);
@@ -45,6 +49,8 @@ export class UsersComponent implements OnInit {
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
 
+  private requestId = 0;
+
   readonly displayedColumns = ['id', 'username', 'email', 'taskCount', 'taskTypeCount', 'actions'];
 
   ngOnInit(): void {
@@ -59,7 +65,9 @@ export class UsersComponent implements OnInit {
   }
 
   loadData(): void {
+    const requestId = ++this.requestId;
     this.loading.set(true);
+    this.data.set(null);
     this.error.set(null);
 
     this.adminUsersService
@@ -69,13 +77,21 @@ export class UsersComponent implements OnInit {
         search: this.searchCtrl.value || undefined,
         sort: `${this.sortActive()},${this.sortDirection()}`,
       })
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (data) => {
+          if (requestId !== this.requestId) return;
+          if (!isAdminPage(data)) {
+            this.error.set('La respuesta de usuarios no es válida. Inténtalo de nuevo.');
+            this.loading.set(false);
+            return;
+          }
           this.data.set(data);
           this.loading.set(false);
         },
-        error: () => {
-          this.error.set('No se pudieron cargar los usuarios.');
+        error: (error) => {
+          if (requestId !== this.requestId) return;
+          this.error.set(adminErrorMessage(error, 'No se pudieron cargar los usuarios.'));
           this.loading.set(false);
         },
       });

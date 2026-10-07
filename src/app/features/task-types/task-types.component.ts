@@ -12,7 +12,9 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { AdminTaskTypesService } from './services/admin-task-types.service';
-import { AdminPage } from '../../shared/models/admin-page.model';
+import { AdminPage, isAdminPage } from '../../shared/models/admin-page.model';
+import { adminErrorMessage } from '../../shared/admin-error-message';
+import { SPANISH_PAGINATOR_PROVIDER } from '../../shared/spanish-paginator-intl';
 import { AdminTaskTypeSummary } from './models/admin-task-type.model';
 
 @Component({
@@ -29,8 +31,9 @@ import { AdminTaskTypeSummary } from './models/admin-task-type.model';
     MatIconModule,
     MatProgressSpinnerModule,
   ],
+  providers: [SPANISH_PAGINATOR_PROVIDER],
   templateUrl: './task-types.component.html',
-  styleUrl: './task-types.component.scss',
+  styleUrl: './task-types.component.css',
 })
 export class TaskTypesComponent implements OnInit {
   private readonly adminTaskTypesService = inject(AdminTaskTypesService);
@@ -46,6 +49,8 @@ export class TaskTypesComponent implements OnInit {
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
 
+  private requestId = 0;
+
   readonly displayedColumns = ['id', 'nombre', 'descripcion', 'color', 'usuarioUsername', 'taskCount', 'actions'];
 
   ngOnInit(): void {
@@ -60,7 +65,9 @@ export class TaskTypesComponent implements OnInit {
   }
 
   loadData(): void {
+    const requestId = ++this.requestId;
     this.loading.set(true);
+    this.data.set(null);
     this.error.set(null);
 
     this.adminTaskTypesService
@@ -70,13 +77,21 @@ export class TaskTypesComponent implements OnInit {
         search: this.searchCtrl.value || undefined,
         sort: `${this.sortActive()},${this.sortDirection()}`,
       })
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (data) => {
+          if (requestId !== this.requestId) return;
+          if (!isAdminPage(data)) {
+            this.error.set('La respuesta de tipos de tarea no es válida. Inténtalo de nuevo.');
+            this.loading.set(false);
+            return;
+          }
           this.data.set(data);
           this.loading.set(false);
         },
-        error: () => {
-          this.error.set('No se pudieron cargar los tipos de tarea.');
+        error: (error) => {
+          if (requestId !== this.requestId) return;
+          this.error.set(adminErrorMessage(error, 'No se pudieron cargar los tipos de tarea.'));
           this.loading.set(false);
         },
       });
