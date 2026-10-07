@@ -2,7 +2,7 @@ import { Component, OnInit, signal, inject, DestroyRef } from '@angular/core';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { debounceTime, distinctUntilChanged, forkJoin } from 'rxjs';
+import { debounceTime, forkJoin, merge } from 'rxjs';
 import { MatTableModule } from '@angular/material/table';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { MatSortModule, Sort } from '@angular/material/sort';
@@ -14,7 +14,9 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { AdminTasksService } from './services/admin-tasks.service';
 import { AdminTaskTypesService } from '../task-types/services/admin-task-types.service';
-import { AdminPage } from '../../shared/models/admin-page.model';
+import { AdminPage, isAdminPage } from '../../shared/models/admin-page.model';
+import { adminErrorMessage } from '../../shared/admin-error-message';
+import { SPANISH_PAGINATOR_PROVIDER } from '../../shared/spanish-paginator-intl';
 import { AdminTaskSummary } from './models/admin-task.model';
 import { AdminTaskTypeSummary } from '../task-types/models/admin-task-type.model';
 
@@ -33,8 +35,9 @@ import { AdminTaskTypeSummary } from '../task-types/models/admin-task-type.model
     MatIconModule,
     MatProgressSpinnerModule,
   ],
+  providers: [SPANISH_PAGINATOR_PROVIDER],
   templateUrl: './tasks.component.html',
-  styleUrl: './tasks.component.scss',
+  styleUrl: './tasks.component.css',
 })
 export class TasksComponent implements OnInit {
   private readonly adminTasksService = inject(AdminTasksService);
@@ -60,11 +63,13 @@ export class TasksComponent implements OnInit {
   readonly loadingTypes = signal(false);
   readonly typesError = signal<string | null>(null);
 
+  private requestId = 0;
+
   readonly displayedColumns = ['id', 'titulo', 'usuarioUsername', 'fecha', 'completada', 'urgencia', 'tipoTareaNombre', 'actions'];
 
   ngOnInit(): void {
-    this.searchCtrl.valueChanges
-      .pipe(debounceTime(300), distinctUntilChanged(), takeUntilDestroyed(this.destroyRef))
+    merge(this.searchCtrl.valueChanges, this.userIdCtrl.valueChanges, this.urgencyCtrl.valueChanges)
+      .pipe(debounceTime(300), takeUntilDestroyed(this.destroyRef))
       .subscribe(() => {
         this.page.set(0);
         this.loadData();
@@ -83,6 +88,11 @@ export class TasksComponent implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (firstPage) => {
+          if (!isAdminPage(firstPage)) {
+            this.typesError.set('La respuesta de tipos de tarea no es válida.');
+            this.loadingTypes.set(false);
+            return;
+          }
           if (firstPage.totalPages <= 1) {
             this.taskTypes.set(firstPage.content);
             this.loadingTypes.set(false);
@@ -103,6 +113,11 @@ export class TasksComponent implements OnInit {
               .pipe(takeUntilDestroyed(this.destroyRef))
               .subscribe({
                 next: (pages) => {
+                  if (!pages.every(isAdminPage)) {
+                    this.typesError.set('No se pudieron cargar todos los tipos de tarea.');
+                    this.loadingTypes.set(false);
+                    return;
+                  }
                   const allContent = [
                     ...firstPage.content,
                     ...pages.flatMap((page) => page.content),
@@ -129,7 +144,9 @@ export class TasksComponent implements OnInit {
   }
 
   loadData(): void {
+    const requestId = ++this.requestId;
     this.loading.set(true);
+    this.data.set(null);
     this.error.set(null);
 
     const completedValue = this.completedCtrl.value;
@@ -151,13 +168,21 @@ export class TasksComponent implements OnInit {
         taskTypeId: this.taskTypeIdCtrl.value ?? undefined,
         sort: `${this.sortActive()},${this.sortDirection()}`,
       })
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (data) => {
+          if (requestId !== this.requestId) return;
+          if (!isAdminPage(data)) {
+            this.error.set('La respuesta de tareas no es válida. Inténtalo de nuevo.');
+            this.loading.set(false);
+            return;
+          }
           this.data.set(data);
           this.loading.set(false);
         },
-        error: () => {
-          this.error.set('No se pudieron cargar las tareas.');
+        error: (error) => {
+          if (requestId !== this.requestId) return;
+          this.error.set(adminErrorMessage(error, 'No se pudieron cargar las tareas.'));
           this.loading.set(false);
         },
       });
@@ -189,11 +214,11 @@ export class TasksComponent implements OnInit {
   }
 
   clearFilters(): void {
-    this.searchCtrl.setValue('');
-    this.userIdCtrl.setValue(null);
-    this.completedCtrl.setValue('all');
-    this.urgencyCtrl.setValue('');
-    this.taskTypeIdCtrl.setValue(null);
+    this.searchCtrl.setValue('', { emitEvent: false });
+    this.userIdCtrl.setValue(null, { emitEvent: false });
+    this.completedCtrl.setValue('all', { emitEvent: false });
+    this.urgencyCtrl.setValue('', { emitEvent: false });
+    this.taskTypeIdCtrl.setValue(null, { emitEvent: false });
     this.page.set(0);
     this.loadData();
   }

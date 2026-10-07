@@ -104,16 +104,6 @@ export interface TaskFormDialogData {
       </button>
     </mat-dialog-actions>
   `,
-  styles: `
-    .dialog-form {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-    .full-width {
-      width: 100%;
-    }
-  `,
 })
 export class TaskFormDialogComponent implements OnInit {
   private readonly fb = inject(NonNullableFormBuilder);

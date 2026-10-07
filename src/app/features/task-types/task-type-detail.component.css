@@ -1,19 +1,16 @@
-@use '../../shared/shared';
-
 .detail-container {
   max-width: 1200px;
 }
 
-.task-info,
-.user-section,
-.type-section {
+.type-info,
+.user-section {
   margin-bottom: 24px;
 
-  h2 {
+  & h2 {
     margin: 0 0 16px 0;
     font-size: 18px;
     font-weight: 500;
-    color: #333;
+    color: var(--text);
   }
 }
 

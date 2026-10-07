@@ -7,6 +7,7 @@ import { BreakpointObserver } from '@angular/cdk/layout';
 import { Subject } from 'rxjs';
 import { LayoutComponent } from './layout.component';
 import { AdminAuthService } from '../core/auth/auth.service';
+import { RuntimeConfigService } from '../core/config/runtime-config.service';
 
 describe('LayoutComponent', () => {
   let component: LayoutComponent;
@@ -28,6 +29,7 @@ describe('LayoutComponent', () => {
         provideHttpClientTesting(),
         provideRouter([]),
         { provide: AdminAuthService, useValue: authService },
+        { provide: RuntimeConfigService, useValue: { apiUrl: 'https://donit-api-prod.marfern.dev' } },
         {
           provide: BreakpointObserver,
           useValue: {
@@ -55,6 +57,11 @@ describe('LayoutComponent', () => {
     expect(component.pageTitle()).toBe('Panel de Administración');
   });
 
+  it('identifies production from the API host, not its .dev top-level domain', () => {
+    fixture.detectChanges();
+    expect(component.environmentLabel).toBe('PROD');
+  });
+
   it('should compute title from route segments', () => {
     fixture.detectChanges();
     component['updateTitle']('/users');
@@ -76,6 +83,12 @@ describe('LayoutComponent', () => {
   it('should compute title for detail routes', () => {
     fixture.detectChanges();
     component['updateTitle']('/users/42');
+    expect(component.pageTitle()).toBe('Usuarios');
+  });
+
+  it('keeps the contextual title when a detail route has query parameters', () => {
+    fixture.detectChanges();
+    component['updateTitle']('/users/42?tab=tasks');
     expect(component.pageTitle()).toBe('Usuarios');
   });
 
@@ -128,12 +141,10 @@ describe('LayoutComponent', () => {
     expect(authService.logout).toHaveBeenCalled();
   });
 
-  it('should display user email', () => {
+  it('should offer an accessible account menu', () => {
     fixture.detectChanges();
-    fixture.whenStable().then(() => {
-      const el: HTMLElement = fixture.nativeElement;
-      expect(el.textContent).toContain('admin@test.com');
-    });
+    const el: HTMLElement = fixture.nativeElement;
+    expect(el.querySelector('[aria-label="Menú de usuario"]')).toBeTruthy();
   });
 
   it('should close sidenav on navigation when mobile', () => {
@@ -152,23 +163,16 @@ describe('LayoutComponent', () => {
     expect(component.sidenav()).toBeFalsy();
   });
 
-  it('should only show Usuarios link in sidenav', () => {
+  it('should show all primary navigation links', () => {
     fixture.detectChanges();
     const el: HTMLElement = fixture.nativeElement;
-    const navLinks = el.querySelectorAll('mat-nav-list a');
-    expect(navLinks.length).toBe(1);
-    expect(navLinks[0].getAttribute('aria-label')).toBe('Usuarios');
+    const labels = Array.from(el.querySelectorAll('mat-nav-list a')).map((link) => link.getAttribute('aria-label'));
+    expect(labels).toEqual(['Dashboard', 'Usuarios', 'Tareas', 'Tipos de tarea']);
   });
 
-  it('should not show Tareas link in sidenav', () => {
+  it('should expose a visible theme selector', () => {
     fixture.detectChanges();
     const el: HTMLElement = fixture.nativeElement;
-    expect(el.textContent).not.toContain('Tareas');
-  });
-
-  it('should not show Tipos de tarea link in sidenav', () => {
-    fixture.detectChanges();
-    const el: HTMLElement = fixture.nativeElement;
-    expect(el.textContent).not.toContain('Tipos de tarea');
+    expect(el.querySelector('select[aria-label="Tema visual"]')).toBeTruthy();
   });
 });

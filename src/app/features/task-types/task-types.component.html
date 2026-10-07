@@ -17,17 +17,18 @@
   </div>
 
   @if (error()) {
-    <div class="error-banner" role="alert">{{ error() }}</div>
+    <div class="error-banner" role="alert"><span>{{ error() }}</span><button mat-button type="button" (click)="loadData()">Reintentar</button></div>
   }
 
   @if (loading() && !data()) {
-    <div class="loading-container">
+    <div class="loading-container" role="status" aria-label="Cargando tipos de tarea">
       <mat-spinner diameter="40"></mat-spinner>
     </div>
-  } @else if (data()!.content.length === 0) {
+  } @else if (data()?.content?.length === 0) {
     <div class="empty-state">No se encontraron tipos de tarea.</div>
   } @else if (data()) {
-    <div class="table-container">
+    <div class="data-panel">
+    <div class="table-container" tabindex="0" role="region" aria-label="Tabla de tipos de tarea, desplazable horizontalmente">
       <table
         mat-table
         [dataSource]="data()!.content"
@@ -81,7 +82,7 @@
             <button
               mat-icon-button
               (click)="viewTaskType(type.id); $event.stopPropagation()"
-              aria-label="Ver detalle"
+              [attr.aria-label]="'Ver detalle de ' + type.nombre"
             >
               <mat-icon>visibility</mat-icon>
             </button>
@@ -93,11 +94,19 @@
           mat-row
           *matRowDef="let row; columns: displayedColumns"
           class="clickable-row"
+          tabindex="0"
+          [attr.aria-label]="'Abrir detalle de ' + row.nombre"
+          (keydown.enter)="viewTaskType(row.id)"
           (click)="viewTaskType(row.id)"
         ></tr>
       </table>
 
+      </div>
+
+      <p class="table-hint">Desliza la tabla horizontalmente para ver todas las columnas.</p>
+
       <mat-paginator
+        aria-label="Páginas de tipos de tarea"
         [length]="data()!.totalElements"
         [pageSize]="size()"
         [pageIndex]="page()"

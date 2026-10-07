@@ -8,7 +8,7 @@ import { AdminAuthService } from './core/auth/auth.service';
   standalone: true,
   imports: [RouterOutlet, MatProgressSpinnerModule],
   templateUrl: './app.html',
-  styleUrl: './app.scss',
+  styleUrl: './app.css',
 })
 export class App {
   readonly authService = inject(AdminAuthService);

@@ -95,6 +95,17 @@ describe('UsersComponent', () => {
     expect(req.request.params.get('size')).toBe('10');
   });
 
+  it('ignores an older response after pagination changes', () => {
+    fixture.detectChanges();
+    const first = httpMock.expectOne((r) => r.url === apiUrl && r.params.get('page') === '0');
+    component.onPageChange({ pageIndex: 1, pageSize: 20, length: 40 });
+    const second = httpMock.expectOne((r) => r.url === apiUrl && r.params.get('page') === '1');
+
+    second.flush({ ...mockPageResponse, page: 1, content: [{ ...mockPageResponse.content[0], username: 'newer' }] });
+    first.flush(mockPageResponse);
+    expect(component.data()?.content[0].username).toBe('newer');
+  });
+
   it('should handle sort', () => {
     fixture.detectChanges();
     flushUsersRequest();
@@ -131,6 +142,29 @@ describe('UsersComponent', () => {
 
     expect(component.error()).toBe('No se pudieron cargar los usuarios.');
     expect(component.loading()).toBeFalsy();
+  });
+
+  it('shows a recoverable error for a null page response', () => {
+    fixture.detectChanges();
+    httpMock.expectOne((request) => request.url === apiUrl).flush(null);
+    fixture.detectChanges();
+
+    expect(component.data()).toBeNull();
+    expect(component.error()).toContain('no es válida');
+    expect(fixture.nativeElement.querySelector('.error-banner button')).toBeTruthy();
+  });
+
+  it('explains rate limits and lets the user retry', () => {
+    fixture.detectChanges();
+    httpMock.expectOne((r) => r.url === apiUrl)
+      .flush('Limit', { status: 429, statusText: 'Too Many Requests' });
+    fixture.detectChanges();
+
+    expect(component.error()).toContain('Demasiadas solicitudes');
+    const retry = fixture.nativeElement.querySelector('.error-banner button') as HTMLButtonElement;
+    retry.click();
+    flushUsersRequest();
+    expect(component.data()?.totalElements).toBe(2);
   });
 
   it('should clear search', () => {

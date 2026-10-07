@@ -1,5 +1,3 @@
-@use '../../shared/shared';
-
 .detail-container {
   max-width: 1200px;
 }
@@ -19,17 +17,19 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
+  min-width: 0;
 }
 
 .identification-username {
   font-size: 20px;
   font-weight: 500;
-  color: #333;
+  color: var(--text);
 }
 
 .identification-email {
   font-size: 14px;
-  color: #666;
+  color: var(--text-muted);
+  overflow-wrap: anywhere;
 }
 
 .identification-status {
@@ -42,13 +42,13 @@
   margin-top: 4px;
 
   &.enabled {
-    background: #e8f5e9;
-    color: #2e7d32;
+    background: var(--success-soft);
+    color: var(--success);
   }
 
   &.disabled {
-    background: #fbe9e7;
-    color: #c62828;
+    background: var(--danger-soft);
+    color: var(--danger);
   }
 }
 
@@ -73,7 +73,8 @@
   }
 
   @media (max-width: 480px) {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-5);
   }
 }
 
@@ -87,12 +88,12 @@
 .metric-value {
   font-size: 32px;
   font-weight: 500;
-  color: #3f51b5;
+  color: var(--brand);
 }
 
 .metric-label {
   font-size: 14px;
-  color: #666;
+  color: var(--text-muted);
 }
 
 .tab-content {
@@ -105,24 +106,24 @@
   justify-content: space-between;
   margin-bottom: 16px;
 
-  h3 {
+  & h3 {
     margin: 0;
     font-size: 16px;
     font-weight: 500;
-    color: #333;
+    color: var(--text);
   }
 }
 
 .actions-section {
   margin-top: 32px;
   padding-top: 24px;
-  border-top: 1px solid #e0e0e0;
+  border-top: 1px solid var(--border);
 
-  h3 {
+  & h3 {
     margin: 0 0 16px 0;
     font-size: 16px;
     font-weight: 500;
-    color: #333;
+    color: var(--text);
   }
 }
 
@@ -134,24 +135,24 @@
   @media (max-width: 600px) {
     flex-direction: column;
 
-    button {
+    & button {
       width: 100%;
     }
   }
 }
 
 .chip-completed {
-  background: #e8f5e9 !important;
-  color: #2e7d32 !important;
+  background: var(--success-soft) !important;
+  color: var(--success) !important;
 }
 
 .chip-pending {
-  background: #fff3e0 !important;
-  color: #e65100 !important;
+  background: var(--warning-soft) !important;
+  color: var(--warning) !important;
 }
 
 .warn-item {
-  color: #c62828;
+  color: var(--danger);
 }
 
 .info-banner {
@@ -159,12 +160,12 @@
   align-items: flex-start;
   gap: 12px;
   padding: 16px;
-  background: #e3f2fd;
+  background: var(--info-soft);
   border-radius: 4px;
-  border: 1px solid #bbdefb;
-  color: #1565c0;
+  border: 1px solid var(--border-strong);
+  color: var(--info);
 
-  mat-icon {
+  & mat-icon {
     flex-shrink: 0;
     margin-top: 2px;
   }
@@ -185,8 +186,8 @@
   font-size: 13px;
   line-height: 1.5;
 
-  code {
-    background: rgba(0, 0, 0, 0.06);
+  & code {
+    background: var(--surface-muted);
     padding: 2px 6px;
     border-radius: 3px;
     font-size: 12px;

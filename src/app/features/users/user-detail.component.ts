@@ -28,6 +28,9 @@ import {
   TaskTypeFormDialogComponent,
   TaskTypeFormDialogData,
 } from './dialogs/task-type-form-dialog.component';
+import { adminErrorMessage } from '../../shared/admin-error-message';
+import { isAdminPage } from '../../shared/models/admin-page.model';
+import { SPANISH_PAGINATOR_PROVIDER } from '../../shared/spanish-paginator-intl';
 
 @Component({
   selector: 'app-user-detail',
@@ -43,8 +46,9 @@ import {
     MatMenuModule,
     MatChipsModule,
   ],
+  providers: [SPANISH_PAGINATOR_PROVIDER],
   templateUrl: './user-detail.component.html',
-  styleUrl: './user-detail.component.scss',
+  styleUrl: './user-detail.component.css',
 })
 export class UserDetailComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
@@ -80,6 +84,8 @@ export class UserDetailComponent implements OnInit {
   userId = 0;
   private tasksLoaded = false;
   private taskTypesLoaded = false;
+  private tasksRequestId = 0;
+  private taskTypesRequestId = 0;
 
   ngOnInit(): void {
     this.userId = Number(this.route.snapshot.paramMap.get('id'));
@@ -111,22 +117,26 @@ export class UserDetailComponent implements OnInit {
 
   loadUser(): void {
     this.userLoading.set(true);
+    this.user.set(null);
     this.userError.set(null);
 
-    this.adminUsersService.getUserById(this.userId).subscribe({
+    this.adminUsersService.getUserById(this.userId).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (user) => {
-        this.user.set(user);
+        if (user) this.user.set(user);
+        else this.userError.set('No se pudo cargar el usuario.');
         this.userLoading.set(false);
       },
-      error: () => {
-        this.userError.set('No se pudo cargar el usuario.');
+      error: (error) => {
+        this.userError.set(adminErrorMessage(error, 'No se pudo cargar el usuario.'));
         this.userLoading.set(false);
       },
     });
   }
 
   loadTasks(): void {
+    const requestId = ++this.tasksRequestId;
     this.tasksLoading.set(true);
+    this.tasks.set([]);
     this.tasksError.set(null);
 
     this.adminUsersService
@@ -134,15 +144,24 @@ export class UserDetailComponent implements OnInit {
         page: this.tasksPage(),
         size: this.tasksSize(),
       })
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (data) => {
+          if (requestId !== this.tasksRequestId) return;
+          if (!isAdminPage(data)) {
+            this.tasksError.set('La respuesta de tareas no es válida. Inténtalo de nuevo.');
+            this.tasksLoading.set(false);
+            this.tasksLoaded = true;
+            return;
+          }
           this.tasks.set(data.content);
           this.tasksTotal.set(data.totalElements);
           this.tasksLoading.set(false);
           this.tasksLoaded = true;
         },
-        error: () => {
-          this.tasksError.set('No se pudieron cargar las tareas.');
+        error: (error) => {
+          if (requestId !== this.tasksRequestId) return;
+          this.tasksError.set(adminErrorMessage(error, 'No se pudieron cargar las tareas.'));
           this.tasksLoading.set(false);
           this.tasksLoaded = true;
         },
@@ -150,7 +169,9 @@ export class UserDetailComponent implements OnInit {
   }
 
   loadTaskTypes(): void {
+    const requestId = ++this.taskTypesRequestId;
     this.taskTypesLoading.set(true);
+    this.taskTypes.set([]);
     this.taskTypesError.set(null);
 
     this.adminUsersService
@@ -158,15 +179,24 @@ export class UserDetailComponent implements OnInit {
         page: this.taskTypesPage(),
         size: this.taskTypesSize(),
       })
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (data) => {
+          if (requestId !== this.taskTypesRequestId) return;
+          if (!isAdminPage(data)) {
+            this.taskTypesError.set('La respuesta de tipos de tarea no es válida. Inténtalo de nuevo.');
+            this.taskTypesLoading.set(false);
+            this.taskTypesLoaded = true;
+            return;
+          }
           this.taskTypes.set(data.content);
           this.taskTypesTotal.set(data.totalElements);
           this.taskTypesLoading.set(false);
           this.taskTypesLoaded = true;
         },
-        error: () => {
-          this.taskTypesError.set('No se pudieron cargar los tipos de tarea.');
+        error: (error) => {
+          if (requestId !== this.taskTypesRequestId) return;
+          this.taskTypesError.set(adminErrorMessage(error, 'No se pudieron cargar los tipos de tarea.'));
           this.taskTypesLoading.set(false);
           this.taskTypesLoaded = true;
         },
@@ -250,10 +280,8 @@ export class UserDetailComponent implements OnInit {
         const label = enabled ? 'habilitado' : 'deshabilitado';
         this.snackBar.open(`Usuario ${label} correctamente.`, 'Cerrar', { duration: 3000 });
       },
-      error: () => {
-        this.snackBar.open('No se pudo cambiar el estado del usuario.', 'Cerrar', {
-          duration: 3000,
-        });
+      error: (error) => {
+        this.showActionError(error, 'No se pudo cambiar el estado del usuario.');
       },
     });
   }
@@ -277,8 +305,8 @@ export class UserDetailComponent implements OnInit {
           this.snackBar.open('Usuario eliminado correctamente.', 'Cerrar', { duration: 3000 });
           this.router.navigate(['/users']);
         },
-        error: () => {
-          this.snackBar.open('No se pudo eliminar el usuario.', 'Cerrar', { duration: 3000 });
+        error: (error) => {
+          this.showActionError(error, 'No se pudo eliminar el usuario.');
         },
       });
     });
@@ -308,8 +336,8 @@ export class UserDetailComponent implements OnInit {
           this.loadTasks();
           this.loadUser();
         },
-        error: () => {
-          this.snackBar.open('No se pudo crear la tarea.', 'Cerrar', { duration: 3000 });
+        error: (error) => {
+          this.showActionError(error, 'No se pudo crear la tarea.');
         },
       });
     });
@@ -338,8 +366,8 @@ export class UserDetailComponent implements OnInit {
           this.loadTasks();
           this.loadUser();
         },
-        error: () => {
-          this.snackBar.open('No se pudo actualizar la tarea.', 'Cerrar', { duration: 3000 });
+        error: (error) => {
+          this.showActionError(error, 'No se pudo actualizar la tarea.');
         },
       });
     });
@@ -352,8 +380,8 @@ export class UserDetailComponent implements OnInit {
         this.loadTasks();
         this.loadUser();
       },
-      error: () => {
-        this.snackBar.open('No se pudo actualizar la tarea.', 'Cerrar', { duration: 3000 });
+      error: (error) => {
+        this.showActionError(error, 'No se pudo actualizar la tarea.');
       },
     });
   }
@@ -380,8 +408,8 @@ export class UserDetailComponent implements OnInit {
           this.loadTasks();
           this.loadUser();
         },
-        error: () => {
-          this.snackBar.open('No se pudo eliminar la tarea.', 'Cerrar', { duration: 3000 });
+        error: (error) => {
+          this.showActionError(error, 'No se pudo eliminar la tarea.');
         },
       });
     });
@@ -403,8 +431,8 @@ export class UserDetailComponent implements OnInit {
           this.loadTaskTypes();
           this.loadUser();
         },
-        error: () => {
-          this.snackBar.open('No se pudo crear el tipo de tarea.', 'Cerrar', { duration: 3000 });
+        error: (error) => {
+          this.showActionError(error, 'No se pudo crear el tipo de tarea.');
         },
       });
     });
@@ -430,10 +458,8 @@ export class UserDetailComponent implements OnInit {
           });
           this.loadTaskTypes();
         },
-        error: () => {
-          this.snackBar.open('No se pudo actualizar el tipo de tarea.', 'Cerrar', {
-            duration: 3000,
-          });
+        error: (error) => {
+          this.showActionError(error, 'No se pudo actualizar el tipo de tarea.');
         },
       });
     });
@@ -471,9 +497,7 @@ export class UserDetailComponent implements OnInit {
               { duration: 4000 },
             );
           } else {
-            this.snackBar.open('No se pudo eliminar el tipo de tarea.', 'Cerrar', {
-              duration: 3000,
-            });
+            this.showActionError(err, 'No se pudo eliminar el tipo de tarea.');
           }
         },
       });
@@ -502,7 +526,11 @@ export class UserDetailComponent implements OnInit {
         duration: 4000,
       });
     } else {
-      this.snackBar.open('No se pudo actualizar el usuario.', 'Cerrar', { duration: 3000 });
+      this.showActionError(err, 'No se pudo actualizar el usuario.');
     }
+  }
+
+  private showActionError(error: unknown, fallback: string): void {
+    this.snackBar.open(adminErrorMessage(error, fallback), 'Cerrar', { duration: 5000 });
   }
 }
