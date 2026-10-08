@@ -18,6 +18,7 @@ export class AdminAuthService {
 
   private readonly _session = signal<AdminSession | null>(null);
   private readonly _initialized = signal(false);
+  private initialization: Promise<void> | null = null;
 
   readonly initialized = this._initialized.asReadonly();
   readonly session = this._session.asReadonly();
@@ -37,6 +38,13 @@ export class AdminAuthService {
   ) {}
 
   initialize(): Promise<void> {
+    if (this._initialized()) return Promise.resolve();
+    if (this.initialization) return this.initialization;
+    this.initialization = this.restoreSession().finally(() => { this.initialization = null; });
+    return this.initialization;
+  }
+
+  private restoreSession(): Promise<void> {
     const stored = sessionStorage.getItem('admin_session');
     if (!stored) {
       this._initialized.set(true);
@@ -87,6 +95,7 @@ export class AdminAuthService {
           refreshToken: response.refreshToken,
         });
         this.persistSession();
+        this._initialized.set(true);
       }),
     );
   }

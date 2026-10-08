@@ -25,11 +25,13 @@ function addAuthHeader(
 }
 
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
-  const authService = inject(AdminAuthService);
-
   if (!req.url.includes('/api/admin/')) {
-    return next(req);
+    // Keep the public API anonymous even if a caller supplies a stale admin header.
+    return next(req.url.includes('/api/public/demo/')
+      ? req.clone({ headers: req.headers.delete('Authorization') }) : req);
   }
+
+  const authService = inject(AdminAuthService);
 
   if (
     req.url.includes('/api/admin/auth/login') ||

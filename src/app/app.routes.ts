@@ -3,6 +3,25 @@ import { authGuard } from './core/auth/auth.guard';
 
 export const routes: Routes = [
   {
+    path: 'demo',
+    loadComponent: () => import('./public/public-layout.component').then((m) => m.PublicLayoutComponent),
+    children: [
+      { path: '', title: 'Donit · Demo', loadComponent: () => import('./public/public-home.component').then((m) => m.PublicHomeComponent) },
+      { path: 'users', children: [
+        { path: '', title: 'Usuarios · Donit', data: { kind: 'users' }, loadComponent: () => import('./public/public-list.component').then((m) => m.PublicListComponent) },
+        { path: ':publicId', title: 'Usuario · Donit', data: { kind: 'users' }, loadComponent: () => import('./public/public-detail.component').then((m) => m.PublicDetailComponent) },
+      ] },
+      { path: 'task-types', children: [
+        { path: '', title: 'Tipos · Donit', data: { kind: 'task-types' }, loadComponent: () => import('./public/public-list.component').then((m) => m.PublicListComponent) },
+        { path: ':publicId', title: 'Tipo · Donit', data: { kind: 'task-types' }, loadComponent: () => import('./public/public-detail.component').then((m) => m.PublicDetailComponent) },
+      ] },
+      { path: 'tasks', children: [
+        { path: '', title: 'Tareas · Donit', data: { kind: 'tasks' }, loadComponent: () => import('./public/public-list.component').then((m) => m.PublicListComponent) },
+        { path: ':publicId', title: 'Tarea · Donit', data: { kind: 'tasks' }, loadComponent: () => import('./public/public-detail.component').then((m) => m.PublicDetailComponent) },
+      ] },
+    ],
+  },
+  {
     path: 'login',
     title: 'Iniciar sesión',
     loadComponent: () =>
