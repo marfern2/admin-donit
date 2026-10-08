@@ -10,13 +10,11 @@ import { provideAnimationsAsync } from '@angular/platform-browser/animations/asy
 
 import { routes } from './app.routes';
 import { authInterceptor } from './core/auth/auth.interceptor';
-import { AdminAuthService } from './core/auth/auth.service';
 import { RuntimeConfigService } from './core/config/runtime-config.service';
 
 export function initializeApp(): Promise<void> {
   const runtimeConfig = inject(RuntimeConfigService);
-  const authService = inject(AdminAuthService);
-  return runtimeConfig.load().then(() => authService.initialize());
+  return runtimeConfig.load();
 }
 
 export const appConfig: ApplicationConfig = {

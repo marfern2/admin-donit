@@ -62,6 +62,15 @@ describe('authInterceptor', () => {
     req.flush({});
   });
 
+  it('keeps public demo requests anonymous with an admin session and strips a supplied bearer token', () => {
+    authService.getAccessToken.mockReturnValue('admin-token');
+    httpClient.get(`${environment.apiUrl}/api/public/demo/stats`, { headers: { Authorization: 'Bearer stale-token' } }).subscribe();
+    const req = httpMock.expectOne(`${environment.apiUrl}/api/public/demo/stats`);
+    expect(req.request.headers.has('Authorization')).toBe(false);
+    expect(authService.getAccessToken).not.toHaveBeenCalled();
+    req.flush({ users: 0, taskTypes: 0, tasks: 0, completedTasks: 0 });
+  });
+
   it('should NOT add Authorization header for login endpoint', () => {
     authService.getAccessToken.mockReturnValue('test-token');
 
