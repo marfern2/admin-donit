@@ -49,7 +49,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
 
   return addAuthHeader(req, token, next).pipe(
     catchError((error) => {
-      if (error.status === 401) {
+      if (error.status === 401 && !req.url.endsWith('/api/admin/me')) {
         return handle401Error(authService, req, next);
       }
       return throwError(() => error);

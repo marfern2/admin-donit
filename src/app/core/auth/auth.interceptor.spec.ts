@@ -52,6 +52,15 @@ describe('authInterceptor', () => {
     req.flush({});
   });
 
+  it('sends /api/admin/me with bearer token and does not recursively refresh on its 401', () => {
+    authService.getAccessToken.mockReturnValue('test-token');
+    httpClient.get(`${environment.apiUrl}/api/admin/me`).subscribe({ error: () => {} });
+    const req = httpMock.expectOne(`${environment.apiUrl}/api/admin/me`);
+    expect(req.request.headers.get('Authorization')).toBe('Bearer test-token');
+    req.flush('Unauthorized', { status: 401, statusText: 'Unauthorized' });
+    expect(authService.refresh).not.toHaveBeenCalled();
+  });
+
   it('should NOT add Authorization header for non-admin routes', () => {
     authService.getAccessToken.mockReturnValue('test-token');
 

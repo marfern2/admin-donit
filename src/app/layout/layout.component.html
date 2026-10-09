@@ -27,6 +27,11 @@
           <a mat-list-item routerLink="/task-types" routerLinkActive="active-link" (click)="closeSidenav()" aria-label="Tipos de tarea">
             <mat-icon matListItemIcon>category</mat-icon><span matListItemTitle>Tipos de tarea</span>
           </a>
+          @if (demoPermissions.any()) {
+            <a mat-list-item routerLink="/demo-content" routerLinkActive="active-link" (click)="closeSidenav()" aria-label="Contenido demo">
+              <mat-icon matListItemIcon>inventory_2</mat-icon><span matListItemTitle>Contenido demo</span>
+            </a>
+          }
         </mat-nav-list>
       </nav>
       <div class="sidebar-spacer"></div>
