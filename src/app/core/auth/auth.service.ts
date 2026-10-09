@@ -1,8 +1,9 @@
 import { Injectable, signal, computed } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { Observable, tap, catchError, throwError, of, firstValueFrom } from 'rxjs';
+import { Observable, tap, catchError, throwError, of, firstValueFrom, switchMap, map } from 'rxjs';
 import { RuntimeConfigService } from '../config/runtime-config.service';
+import { DemoPermissionsService } from './demo-permissions.service';
 import {
   AdminLoginRequest,
   AdminLoginResponse,
@@ -15,6 +16,7 @@ export class AdminAuthService {
   private get apiUrl(): string {
     return `${this.runtimeConfig.apiUrl}/api/admin/auth`;
   }
+  private get meUrl(): string { return `${this.runtimeConfig.apiUrl}/api/admin/me`; }
 
   private readonly _session = signal<AdminSession | null>(null);
   private readonly _initialized = signal(false);
@@ -35,6 +37,7 @@ export class AdminAuthService {
     private http: HttpClient,
     private router: Router,
     private runtimeConfig: RuntimeConfigService,
+    private demoPermissions: DemoPermissionsService,
   ) {}
 
   initialize(): Promise<void> {
@@ -85,6 +88,7 @@ export class AdminAuthService {
   }
 
   login(credentials: AdminLoginRequest): Observable<AdminLoginResponse> {
+    this.demoPermissions.clear();
     return this.http.post<AdminLoginResponse>(`${this.apiUrl}/login`, credentials).pipe(
       tap((response) => {
         this._session.set({
@@ -97,6 +101,7 @@ export class AdminAuthService {
         this.persistSession();
         this._initialized.set(true);
       }),
+      switchMap(response => this.loadCurrentPermissions().pipe(map(() => response))),
     );
   }
 
@@ -106,6 +111,7 @@ export class AdminAuthService {
       return throwError(() => new Error('No refresh token available'));
     }
 
+    this.demoPermissions.clear();
     return this.http
       .post<AdminRefreshResponse>(`${this.apiUrl}/refresh`, {
         refreshToken: currentRefresh,
@@ -122,10 +128,37 @@ export class AdminAuthService {
             this.persistSession();
           }
         }),
+        switchMap(response => this.loadCurrentPermissions().pipe(map(() => response))),
       );
   }
 
+  /** A failed identity lookup leaves sensitive capabilities unavailable. */
+  private loadCurrentPermissions(): Observable<void> {
+    const token = this.getAccessToken();
+    return this.http.get<{ username: string; permissions: string[] }>(this.meUrl).pipe(
+      tap(identity => {
+        if (token !== this.getAccessToken()) return;
+        if (identity?.username !== this._session()?.username || !Array.isArray(identity.permissions)) {
+          this.demoPermissions.clear();
+          return;
+        }
+        this.demoPermissions.setPermissions(identity.permissions);
+      }),
+      map(() => undefined),
+      catchError(error => {
+        if (token !== this.getAccessToken()) return of(undefined);
+        this.demoPermissions.clear();
+        if (error?.status === 401) {
+          this.logout();
+          return throwError(() => error);
+        }
+        return of(undefined);
+      }),
+    );
+  }
+
   logout(): void {
+    this.demoPermissions.clear();
     const currentRefresh = this._session()?.refreshToken;
     if (currentRefresh) {
       this.http

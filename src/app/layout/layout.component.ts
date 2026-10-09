@@ -12,6 +12,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { AdminAuthService } from '../core/auth/auth.service';
 import { ThemePreference, ThemeService } from '../core/theme/theme.service';
 import { RuntimeConfigService } from '../core/config/runtime-config.service';
+import { DemoPermissionsService } from '../core/auth/demo-permissions.service';
 
 @Component({
   selector: 'app-layout',
@@ -32,6 +33,7 @@ import { RuntimeConfigService } from '../core/config/runtime-config.service';
 })
 export class LayoutComponent implements OnInit {
   readonly authService = inject(AdminAuthService);
+  readonly demoPermissions = inject(DemoPermissionsService);
   readonly theme = inject(ThemeService);
   private readonly runtimeConfig = inject(RuntimeConfigService);
   private readonly router = inject(Router);
@@ -53,6 +55,8 @@ export class LayoutComponent implements OnInit {
     users: 'Usuarios',
     tasks: 'Tareas',
     'task-types': 'Tipos de tarea',
+    'demo-content': 'Contenido demo',
+    fixtures: 'Fixtures demo',
     settings: 'Configuración',
   };
 

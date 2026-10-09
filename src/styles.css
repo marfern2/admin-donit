@@ -1,6 +1,7 @@
 @import '@angular/material/prebuilt-themes/azure-blue.css';
 @import './app/shared/shared.css';
 @import './app/public/public.css';
+@import './app/features/demo-content/demo-content.css';
 
 :root {
   color-scheme: light;

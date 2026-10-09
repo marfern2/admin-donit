@@ -10,7 +10,21 @@ La experiencia pública tiene layout y modelos propios, separados del backoffice
 
 Los listados sincronizan búsqueda, orden, filtros, página y tamaño con la URL para conservar el estado al recargar y usar atrás/adelante. La búsqueda se recorta, espera 300 ms y solo se envía con 2–60 caracteres; los parámetros fuera de rango se ignoran y las solicitudes anteriores se cancelan. Usuarios ordena por `displayName` o `handle`; tipos por `name`; tareas por `dueDate` o `title`. Los filtros públicos son `userPublicId`, `taskTypePublicId`, `completed` y `urgency` según la sección. Los campos de usuario y tipo ofrecen sugerencias públicas al enfocarse (primeros 20 resultados) y también aceptan un UUID pegado. Las pantallas incluyen estados de carga, vacío, error y datos, también cuando DEV no tiene elementos publicados.
 
-La API DEV puede no tener publicaciones. La web no incluye mocks en runtime. En la comprobación local, la API DEV permitió el origen `https://admin-dev.marfern.dev`, pero respondió 403 a `http://localhost:4200` y `http://127.0.0.1:4300`; el QA local con datos reales requiere un proxy o un origen autorizado. Antes de publicar la experiencia fuera del entorno actual, comprobar CORS/proxy para el origen público y definir rate limiting en la capa correspondiente; este cambio no configura esas capas.
+La web no incluye mocks en runtime. El catálogo DEV publicado contiene actualmente 6 usuarios, 12 tipos y 24 tareas, de las que 8 están completadas. En la comprobación local anterior, la API DEV permitió el origen `https://admin-dev.marfern.dev`, pero respondió 403 a `http://localhost:4200` y `http://127.0.0.1:4300`; el QA local con datos reales requiere un proxy o un origen autorizado.
+
+## Gestión privada `/demo-content`
+
+Las rutas `/demo-content`, `/demo-content/users`, `/demo-content/users/:id`, `/demo-content/task-types`, `/demo-content/task-types/:id`, `/demo-content/tasks`, `/demo-content/tasks/:id` y `/demo-content/fixtures` viven bajo el layout y guard privados. Usan IDs internos demo. `DemoAdminApiService` consume solo `/api/admin/demo/**` y el interceptor privado añade `Authorization`. `PublicDemoApiService` y `/demo/**` siguen separados y anónimos.
+
+La API exige permisos independientes: `DEMO_READ` para listados, detalles y stats; `DEMO_WRITE` para crear, editar y borrar; `DEMO_PUBLISH` para publicar o despublicar; `DEMO_RESTORE` para preview y restore. No existe DELETE de usuarios. Tras login y cada refresh, la UI consulta `GET /api/admin/me` y mantiene sus permisos solo en memoria. Una consulta fallida vacía las capacidades sensibles; un 401 termina la sesión. El sidebar se muestra con cualquier permiso DEMO, pero los controles CRUD requieren además `DEMO_READ` porque necesitan consultar recursos y ETag. El backend sigue siendo la autoridad final.
+
+Cada GET individual y mutación de recurso conserva el ETag de respuesta. PATCH, DELETE y cambios de publicación envían ese valor literal en `If-Match`. Un 412 muestra que los datos cambiaron y ofrece recarga; un 428 señala falta de precondición. El preview de fixtures conserva su ETag opaco y restore lo envía sin reconstruirlo. Restore requiere preview de menos de cinco minutos y confirmación; tras un éxito se refrescan preview y stats, sin publicar nada. Los fixtures gestionados vuelven al manifest en DRAFT; los registros personalizados no se modifican. La API privada de recursos no expone `fixture_key` ni un indicador fixture/custom, por lo que los listados no pueden distinguirlos. El preview sí informa el total de registros personalizados.
+
+Obtener ETag requiere GET con `DEMO_READ`. Una cuenta que solo tenga `DEMO_WRITE` o solo `DEMO_PUBLISH` ve el acceso lateral y un mensaje claro, sin listados ni controles de mutación. Los formularios de tipos y tareas también necesitan lectura para ofrecer usuarios y tipos relacionados.
+
+En DEV, la preflight desde `https://admin-dev.marfern.dev` permite `Authorization`, `Content-Type` e `If-Match`, y expone `ETag` y `Retry-After`. El frontend conserva literalmente el ETag de las respuestas y lo envía en `If-Match` sin reconstruirlo.
+
+Los listados conservan página, tamaño, búsqueda, filtros y orden en query params. La UI trata 400 (validación), 401 (sesión), 403 (permiso), 404, 409 (conflicto), 412, 428, 429 (incluido `Retry-After`) y 5xx sin exponer trazas. Un 409 de DELETE de tipo indica que tiene tareas asociadas. El frontend no reintenta automáticamente tras 429.
 
 ## Stack y arquitectura
 

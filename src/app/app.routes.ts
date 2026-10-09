@@ -47,6 +47,25 @@ export const routes: Routes = [
           import('./features/settings/settings.component').then((m) => m.SettingsComponent),
       },
       {
+        path: 'demo-content',
+        children: [
+          { path: '', title: 'Contenido demo', loadComponent: () => import('./features/demo-content/demo-dashboard.component').then(m => m.DemoDashboardComponent) },
+          { path: 'fixtures', title: 'Fixtures demo', loadComponent: () => import('./features/demo-content/demo-fixtures.component').then(m => m.DemoFixturesComponent) },
+          { path: 'users', children: [
+            { path: '', title: 'Usuarios demo', data: { kind: 'users' }, loadComponent: () => import('./features/demo-content/demo-list.component').then(m => m.DemoListComponent) },
+            { path: ':id', title: 'Usuario demo', data: { kind: 'users' }, loadComponent: () => import('./features/demo-content/demo-detail.component').then(m => m.DemoDetailComponent) },
+          ] },
+          { path: 'task-types', children: [
+            { path: '', title: 'Tipos demo', data: { kind: 'task-types' }, loadComponent: () => import('./features/demo-content/demo-list.component').then(m => m.DemoListComponent) },
+            { path: ':id', title: 'Tipo demo', data: { kind: 'task-types' }, loadComponent: () => import('./features/demo-content/demo-detail.component').then(m => m.DemoDetailComponent) },
+          ] },
+          { path: 'tasks', children: [
+            { path: '', title: 'Tareas demo', data: { kind: 'tasks' }, loadComponent: () => import('./features/demo-content/demo-list.component').then(m => m.DemoListComponent) },
+            { path: ':id', title: 'Tarea demo', data: { kind: 'tasks' }, loadComponent: () => import('./features/demo-content/demo-detail.component').then(m => m.DemoDetailComponent) },
+          ] },
+        ],
+      },
+      {
         path: 'users',
         title: 'Usuarios',
         children: [
