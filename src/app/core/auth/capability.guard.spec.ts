@@ -10,12 +10,12 @@ describe('private capability routing', () => {
   let router: Router;
 
   beforeEach(() => {
-    TestBed.configureTestingModule({ providers: [provideRouter([]), { provide: AdminAuthService, useValue: { revalidatePermissions: () => of(undefined) } }] });
+    TestBed.configureTestingModule({ providers: [provideRouter([]), { provide: AdminAuthService, useValue: { isAuthenticated: () => true, revalidatePermissions: () => of(undefined) } }] });
     permissions = TestBed.inject(DemoPermissionsService);
     router = TestBed.inject(Router);
   });
 
-  const run = (guard: ReturnType<typeof capabilityGuard>) => TestBed.runInInjectionContext(() => guard({} as never, {} as never));
+  const run = (guard: ReturnType<typeof capabilityGuard>) => TestBed.runInInjectionContext(() => guard({} as never, { url: '/dashboard' } as never));
 
   it.each([
     [['ADMIN_READ'], '/dashboard'],
@@ -24,7 +24,7 @@ describe('private capability routing', () => {
   ] as const)('selects a safe landing for %j', (values, destination) => {
     permissions.setPermissions(values);
     expect(privateLanding(permissions)).toBe(destination);
-    const result = TestBed.runInInjectionContext(() => landingGuard({} as never, {} as never));
+    const result = TestBed.runInInjectionContext(() => landingGuard({} as never, { url: '/' } as never));
     expect(result === true ? '/' : router.serializeUrl(result as never)).toBe(destination);
   });
 
@@ -62,5 +62,20 @@ describe('private capability routing', () => {
     const result = await firstValueFrom(run(capabilityGuard('ADMIN_READ')) as Observable<boolean>);
     expect(router.serializeUrl(result as never)).toBe('/demo-content');
     expect(auth.revalidatePermissions).toHaveBeenCalledOnce();
+  });
+
+  it('distinguishes an expired session from an authenticated account without permissions', () => {
+    vi.spyOn(TestBed.inject(AdminAuthService), 'isAuthenticated').mockReturnValue(false);
+    permissions.clear();
+    const root = TestBed.runInInjectionContext(() => landingGuard({} as never, { url: '/' } as never));
+    expect(router.serializeUrl(root as never)).toBe('/login');
+    expect(router.serializeUrl(run(capabilityGuard('ADMIN_READ', false)) as never)).toBe('/login?redirectUrl=%2Fdashboard');
+  });
+
+  it('does not accept external redirect URLs', () => {
+    permissions.setPermissions(['ADMIN_READ', 'DEMO_READ']);
+    expect(canOpenPrivateUrl('//example.test/dashboard', permissions)).toBe(false);
+    expect(canOpenPrivateUrl('https://example.test/dashboard', permissions)).toBe(false);
+    expect(canOpenPrivateUrl('/login', permissions)).toBe(false);
   });
 });

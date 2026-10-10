@@ -3,6 +3,7 @@ import { CanActivateFn, Router } from '@angular/router';
 import { map } from 'rxjs';
 import { AdminCapability, DemoPermissionsService } from './demo-permissions.service';
 import { AdminAuthService } from './auth.service';
+import { loginRedirect } from './auth.guard';
 
 export function privateLanding(permissions: DemoPermissionsService): string {
   if (permissions.canReadAdmin()) return '/dashboard';
@@ -29,20 +30,24 @@ export function canOpenPrivateUrl(url: string, permissions: DemoPermissionsServi
   }
 }
 
-export const landingGuard: CanActivateFn = () => {
+export const landingGuard: CanActivateFn = (_route, state) => {
+  const router = inject(Router);
+  if (!inject(AdminAuthService).isAuthenticated()) return loginRedirect(router, state.url);
   const permissions = inject(DemoPermissionsService);
   const landing = privateLanding(permissions);
-  return landing === '/' ? true : inject(Router).parseUrl(landing);
+  return landing === '/' ? true : router.parseUrl(landing);
 };
 
 export function capabilityGuard(required: AdminCapability | 'DEMO_ANY', revalidate = true): CanActivateFn {
-  return () => {
+  return (_route, state) => {
     const permissions = inject(DemoPermissionsService);
     const router = inject(Router);
+    const auth = inject(AdminAuthService);
     const result = () => {
+      if (!auth.isAuthenticated()) return loginRedirect(router, state.url);
       const allowed = required === 'DEMO_ANY' ? permissions.any() : permissions.has(required);
       return allowed ? true : router.parseUrl(privateLanding(permissions));
     };
-    return revalidate ? inject(AdminAuthService).revalidatePermissions().pipe(map(result)) : result();
+    return revalidate ? auth.revalidatePermissions().pipe(map(result)) : result();
   };
 }
