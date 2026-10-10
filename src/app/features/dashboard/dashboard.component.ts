@@ -6,6 +6,7 @@ import { MetricCardComponent, MetricCardData } from '../../shared/metric-card.co
 import { AdminUsersService } from '../users/services/admin-users.service';
 import { AdminTasksService } from '../tasks/services/admin-tasks.service';
 import { AdminAuthService } from '../../core/auth/auth.service';
+import { DemoPermissionsService } from '../../core/auth/demo-permissions.service';
 
 @Component({
   selector: 'app-dashboard',
@@ -19,6 +20,7 @@ export class DashboardComponent {
   private readonly tasks = inject(AdminTasksService);
   private readonly destroyRef = inject(DestroyRef);
   readonly auth = inject(AdminAuthService);
+  readonly permissions = inject(DemoPermissionsService);
 
   readonly metrics = signal<MetricCardData[]>([
     { label: 'Usuarios totales', icon: 'group', value: null, helper: 'Consultando usuarios', loading: true },
@@ -28,6 +30,7 @@ export class DashboardComponent {
   ]);
 
   constructor() {
+    if (!this.permissions.canReadAdmin()) return;
     this.users.getUsers({ page: 0, size: 1 }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (page) => this.updateMetric(0, page?.totalElements ?? null),
       error: () => this.updateMetric(0, null),

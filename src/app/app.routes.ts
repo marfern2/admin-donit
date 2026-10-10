@@ -1,7 +1,27 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/auth/auth.guard';
+import { capabilityGuard, landingGuard } from './core/auth/capability.guard';
 
 export const routes: Routes = [
+  {
+    path: 'demo',
+    loadComponent: () => import('./public/public-layout.component').then((m) => m.PublicLayoutComponent),
+    children: [
+      { path: '', title: 'Donit · Demo', loadComponent: () => import('./public/public-home.component').then((m) => m.PublicHomeComponent) },
+      { path: 'users', children: [
+        { path: '', title: 'Usuarios · Donit', data: { kind: 'users' }, loadComponent: () => import('./public/public-list.component').then((m) => m.PublicListComponent) },
+        { path: ':publicId', title: 'Usuario · Donit', data: { kind: 'users' }, loadComponent: () => import('./public/public-detail.component').then((m) => m.PublicDetailComponent) },
+      ] },
+      { path: 'task-types', children: [
+        { path: '', title: 'Tipos · Donit', data: { kind: 'task-types' }, loadComponent: () => import('./public/public-list.component').then((m) => m.PublicListComponent) },
+        { path: ':publicId', title: 'Tipo · Donit', data: { kind: 'task-types' }, loadComponent: () => import('./public/public-detail.component').then((m) => m.PublicDetailComponent) },
+      ] },
+      { path: 'tasks', children: [
+        { path: '', title: 'Tareas · Donit', data: { kind: 'tasks' }, loadComponent: () => import('./public/public-list.component').then((m) => m.PublicListComponent) },
+        { path: ':publicId', title: 'Tarea · Donit', data: { kind: 'tasks' }, loadComponent: () => import('./public/public-detail.component').then((m) => m.PublicDetailComponent) },
+      ] },
+    ],
+  },
   {
     path: 'login',
     title: 'Iniciar sesión',
@@ -14,9 +34,10 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./layout/layout.component').then((m) => m.LayoutComponent),
     children: [
-      { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
+      { path: '', pathMatch: 'full', canActivate: [landingGuard], title: 'Acceso insuficiente', loadComponent: () => import('./features/access-insufficient/access-insufficient.component').then(m => m.AccessInsufficientComponent) },
       {
         path: 'dashboard',
+        canActivate: [capabilityGuard('ADMIN_READ')],
         title: 'Dashboard',
         loadComponent: () =>
           import('./features/dashboard/dashboard.component').then((m) => m.DashboardComponent),
@@ -28,7 +49,28 @@ export const routes: Routes = [
           import('./features/settings/settings.component').then((m) => m.SettingsComponent),
       },
       {
+        path: 'demo-content',
+        canActivate: [capabilityGuard('DEMO_ANY')],
+        children: [
+          { path: '', title: 'Contenido demo', loadComponent: () => import('./features/demo-content/demo-dashboard.component').then(m => m.DemoDashboardComponent) },
+          { path: 'fixtures', canActivate: [capabilityGuard('DEMO_RESTORE', false)], title: 'Fixtures demo', loadComponent: () => import('./features/demo-content/demo-fixtures.component').then(m => m.DemoFixturesComponent) },
+          { path: 'users', children: [
+            { path: '', title: 'Usuarios demo', data: { kind: 'users' }, loadComponent: () => import('./features/demo-content/demo-list.component').then(m => m.DemoListComponent) },
+            { path: ':id', title: 'Usuario demo', data: { kind: 'users' }, loadComponent: () => import('./features/demo-content/demo-detail.component').then(m => m.DemoDetailComponent) },
+          ], canActivate: [capabilityGuard('DEMO_READ', false)] },
+          { path: 'task-types', canActivate: [capabilityGuard('DEMO_READ', false)], children: [
+            { path: '', title: 'Tipos demo', data: { kind: 'task-types' }, loadComponent: () => import('./features/demo-content/demo-list.component').then(m => m.DemoListComponent) },
+            { path: ':id', title: 'Tipo demo', data: { kind: 'task-types' }, loadComponent: () => import('./features/demo-content/demo-detail.component').then(m => m.DemoDetailComponent) },
+          ] },
+          { path: 'tasks', canActivate: [capabilityGuard('DEMO_READ', false)], children: [
+            { path: '', title: 'Tareas demo', data: { kind: 'tasks' }, loadComponent: () => import('./features/demo-content/demo-list.component').then(m => m.DemoListComponent) },
+            { path: ':id', title: 'Tarea demo', data: { kind: 'tasks' }, loadComponent: () => import('./features/demo-content/demo-detail.component').then(m => m.DemoDetailComponent) },
+          ] },
+        ],
+      },
+      {
         path: 'users',
+        canActivate: [capabilityGuard('ADMIN_READ')],
         title: 'Usuarios',
         children: [
           {
@@ -48,6 +90,7 @@ export const routes: Routes = [
       },
       {
         path: 'tasks',
+        canActivate: [capabilityGuard('ADMIN_READ')],
         title: 'Tareas',
         children: [
           {
@@ -67,6 +110,7 @@ export const routes: Routes = [
       },
       {
         path: 'task-types',
+        canActivate: [capabilityGuard('ADMIN_READ')],
         title: 'Tipos de tarea',
         children: [
           {

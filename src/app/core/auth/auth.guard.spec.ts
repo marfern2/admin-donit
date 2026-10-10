@@ -7,6 +7,7 @@ describe('authGuard', () => {
   let authService: {
     isAuthenticated: ReturnType<typeof vi.fn>;
     initialized: ReturnType<typeof vi.fn>;
+    initialize: ReturnType<typeof vi.fn>;
   };
   let router: { createUrlTree: ReturnType<typeof vi.fn> };
 
@@ -17,6 +18,7 @@ describe('authGuard', () => {
     authService = {
       isAuthenticated: vi.fn(),
       initialized: vi.fn(),
+      initialize: vi.fn().mockResolvedValue(undefined),
     };
     router = { createUrlTree: vi.fn() };
 
@@ -28,32 +30,49 @@ describe('authGuard', () => {
     });
   });
 
-  it('should block access when not initialized', () => {
+  it('restores a private session only on entering a private route', async () => {
     authService.initialized.mockReturnValue(false);
     authService.isAuthenticated.mockReturnValue(false);
 
-    const result = TestBed.runInInjectionContext(() => authGuard(mockRoute, mockState));
-
-    expect(result).toBeFalsy();
+    router.createUrlTree.mockReturnValue({} as any);
+    const result = await TestBed.runInInjectionContext(() => authGuard(mockRoute, mockState));
+    expect(authService.initialize).toHaveBeenCalledOnce();
+    expect(result).toEqual({});
   });
 
-  it('should allow access when initialized and authenticated', () => {
+  it('should allow access when initialized and authenticated', async () => {
     authService.initialized.mockReturnValue(true);
     authService.isAuthenticated.mockReturnValue(true);
 
-    const result = TestBed.runInInjectionContext(() => authGuard(mockRoute, mockState));
+    const result = await TestBed.runInInjectionContext(() => authGuard(mockRoute, mockState));
 
     expect(result).toBeTruthy();
   });
 
-  it('should redirect to /login when initialized but not authenticated', () => {
+  it('does not restore again immediately after login', async () => {
+    authService.initialized.mockReturnValue(false);
+    authService.isAuthenticated.mockReturnValue(true);
+    const result = await TestBed.runInInjectionContext(() => authGuard(mockRoute, mockState));
+    expect(result).toBe(true);
+    expect(authService.initialize).not.toHaveBeenCalled();
+  });
+
+  it('should redirect to /login when initialized but not authenticated', async () => {
     authService.initialized.mockReturnValue(true);
     authService.isAuthenticated.mockReturnValue(false);
     router.createUrlTree.mockReturnValue({} as any);
 
-    const result = TestBed.runInInjectionContext(() => authGuard(mockRoute, mockState));
+    const result = await TestBed.runInInjectionContext(() => authGuard(mockRoute, mockState));
 
-    expect(router.createUrlTree).toHaveBeenCalledWith(['/login']);
+    expect(router.createUrlTree).toHaveBeenCalledWith(['/login'], { queryParams: {} });
     expect(result).toEqual({});
+  });
+
+  it('preserves a requested private URL for login return', async () => {
+    authService.initialized.mockReturnValue(true);
+    authService.isAuthenticated.mockReturnValue(false);
+    router.createUrlTree.mockReturnValue({} as any);
+    await TestBed.runInInjectionContext(() => authGuard(mockRoute, { url: '/demo-content/tasks/21' } as RouterStateSnapshot));
+    expect(router.createUrlTree).toHaveBeenCalledWith(['/login'], { queryParams: { redirectUrl: '/demo-content/tasks/21' } });
   });
 });

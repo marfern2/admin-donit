@@ -1,4 +1,4 @@
-import { Component, OnInit, signal, inject, DestroyRef } from '@angular/core';
+import { Component, OnInit, signal, inject, DestroyRef, computed } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatDialog } from '@angular/material/dialog';
@@ -31,6 +31,7 @@ import {
 import { adminErrorMessage } from '../../shared/admin-error-message';
 import { isAdminPage } from '../../shared/models/admin-page.model';
 import { SPANISH_PAGINATOR_PROVIDER } from '../../shared/spanish-paginator-intl';
+import { DemoPermissionsService } from '../../core/auth/demo-permissions.service';
 
 @Component({
   selector: 'app-user-detail',
@@ -57,6 +58,10 @@ export class UserDetailComponent implements OnInit {
   private readonly dialog = inject(MatDialog);
   private readonly snackBar = inject(MatSnackBar);
   private readonly destroyRef = inject(DestroyRef);
+  readonly permissions = inject(DemoPermissionsService);
+  readonly canWriteUser = computed(() => this.permissions.has('ADMIN_READ') && this.permissions.has('USER_WRITE'));
+  readonly canDeleteUser = computed(() => this.permissions.has('ADMIN_READ') && this.permissions.has('USER_DELETE'));
+  readonly canWriteTask = computed(() => this.permissions.has('ADMIN_READ') && this.permissions.has('TASK_WRITE'));
 
   readonly user = signal<AdminUserDetail | null>(null);
   readonly userLoading = signal(false);
@@ -76,8 +81,8 @@ export class UserDetailComponent implements OnInit {
   readonly taskTypesPage = signal(0);
   readonly taskTypesSize = signal(20);
 
-  readonly taskColumns = ['id', 'titulo', 'fecha', 'completada', 'urgencia', 'tipoTareaNombre', 'actions'];
-  readonly taskTypeColumns = ['id', 'nombre', 'descripcion', 'color', 'taskCount', 'actions'];
+  readonly taskColumns = computed(() => ['id', 'titulo', 'fecha', 'completada', 'urgencia', 'tipoTareaNombre', ...(this.canWriteTask() ? ['actions'] : [])]);
+  readonly taskTypeColumns = computed(() => ['id', 'nombre', 'descripcion', 'color', 'taskCount', ...(this.canWriteTask() ? ['actions'] : [])]);
 
   readonly selectedTab = signal(0);
 
@@ -222,6 +227,7 @@ export class UserDetailComponent implements OnInit {
   // --- User actions ---
 
   openEditUserDialog(): void {
+    if (!this.canWriteUser()) return;
     const currentUser = this.user();
     if (!currentUser) return;
 
@@ -231,7 +237,7 @@ export class UserDetailComponent implements OnInit {
     });
 
     dialogRef.afterClosed().pipe(takeUntilDestroyed(this.destroyRef)).subscribe((result) => {
-      if (!result) return;
+      if (!result || !this.canWriteUser()) return;
       this.adminUsersService.updateUser(this.userId, result).subscribe({
         next: (updated) => {
           this.user.set(updated);
@@ -245,6 +251,7 @@ export class UserDetailComponent implements OnInit {
   }
 
   toggleEnabled(): void {
+    if (!this.canWriteUser()) return;
     const currentUser = this.user();
     if (!currentUser) return;
 
@@ -274,6 +281,7 @@ export class UserDetailComponent implements OnInit {
   }
 
   private applyEnabledChange(enabled: boolean): void {
+    if (!this.canWriteUser()) return;
     this.adminUsersService.setUserEnabled(this.userId, enabled).subscribe({
       next: (updated) => {
         this.user.set(updated);
@@ -287,6 +295,7 @@ export class UserDetailComponent implements OnInit {
   }
 
   deleteUser(): void {
+    if (!this.canDeleteUser()) return;
     const dialogRef = this.dialog.open(ConfirmDialogComponent, {
       width: '420px',
       data: {
@@ -299,7 +308,7 @@ export class UserDetailComponent implements OnInit {
     });
 
     dialogRef.afterClosed().pipe(takeUntilDestroyed(this.destroyRef)).subscribe((confirmed) => {
-      if (!confirmed) return;
+      if (!confirmed || !this.canDeleteUser()) return;
       this.adminUsersService.deleteUser(this.userId).subscribe({
         next: () => {
           this.snackBar.open('Usuario eliminado correctamente.', 'Cerrar', { duration: 3000 });
@@ -315,6 +324,7 @@ export class UserDetailComponent implements OnInit {
   // --- Task actions ---
 
   openCreateTaskDialog(): void {
+    if (!this.canWriteTask()) return;
     const taskTypes = this.taskTypes();
     if (taskTypes.length === 0) {
       this.snackBar.open('Crea al menos un tipo de tarea antes de crear tareas.', 'Cerrar', {
@@ -329,7 +339,7 @@ export class UserDetailComponent implements OnInit {
     });
 
     dialogRef.afterClosed().pipe(takeUntilDestroyed(this.destroyRef)).subscribe((result) => {
-      if (!result) return;
+      if (!result || !this.canWriteTask()) return;
       this.adminUsersService.createTask(this.userId, result).subscribe({
         next: () => {
           this.snackBar.open('Tarea creada correctamente.', 'Cerrar', { duration: 3000 });
@@ -344,6 +354,7 @@ export class UserDetailComponent implements OnInit {
   }
 
   openEditTaskDialog(task: AdminUserTaskSummary): void {
+    if (!this.canWriteTask()) return;
     const dialogRef = this.dialog.open(TaskFormDialogComponent, {
       width: '500px',
       data: {
@@ -359,7 +370,7 @@ export class UserDetailComponent implements OnInit {
     });
 
     dialogRef.afterClosed().pipe(takeUntilDestroyed(this.destroyRef)).subscribe((result) => {
-      if (!result) return;
+      if (!result || !this.canWriteTask()) return;
       this.adminUsersService.updateTask(this.userId, task.id, result).subscribe({
         next: () => {
           this.snackBar.open('Tarea actualizada correctamente.', 'Cerrar', { duration: 3000 });
@@ -374,6 +385,7 @@ export class UserDetailComponent implements OnInit {
   }
 
   toggleTaskCompleted(task: AdminUserTaskSummary): void {
+    if (!this.canWriteTask()) return;
     const newStatus = !(task.completada ?? false);
     this.adminUsersService.updateTask(this.userId, task.id, { completada: newStatus }).subscribe({
       next: () => {
@@ -387,6 +399,7 @@ export class UserDetailComponent implements OnInit {
   }
 
   deleteTask(task: AdminUserTaskSummary): void {
+    if (!this.canWriteTask()) return;
     const dialogRef = this.dialog.open(ConfirmDialogComponent, {
       width: '400px',
       data: {
@@ -398,7 +411,7 @@ export class UserDetailComponent implements OnInit {
     });
 
     dialogRef.afterClosed().pipe(takeUntilDestroyed(this.destroyRef)).subscribe((confirmed) => {
-      if (!confirmed) return;
+      if (!confirmed || !this.canWriteTask()) return;
       this.adminUsersService.deleteTask(this.userId, task.id).subscribe({
         next: () => {
           this.snackBar.open('Tarea eliminada correctamente.', 'Cerrar', { duration: 3000 });
@@ -418,13 +431,14 @@ export class UserDetailComponent implements OnInit {
   // --- Task type actions ---
 
   openCreateTaskTypeDialog(): void {
+    if (!this.canWriteTask()) return;
     const dialogRef = this.dialog.open(TaskTypeFormDialogComponent, {
       width: '400px',
       data: { isEdit: false } satisfies TaskTypeFormDialogData,
     });
 
     dialogRef.afterClosed().pipe(takeUntilDestroyed(this.destroyRef)).subscribe((result) => {
-      if (!result) return;
+      if (!result || !this.canWriteTask()) return;
       this.adminUsersService.createTaskType(this.userId, result).subscribe({
         next: () => {
           this.snackBar.open('Tipo de tarea creado correctamente.', 'Cerrar', { duration: 3000 });
@@ -439,6 +453,7 @@ export class UserDetailComponent implements OnInit {
   }
 
   openEditTaskTypeDialog(taskType: AdminUserTaskTypeSummary): void {
+    if (!this.canWriteTask()) return;
     const dialogRef = this.dialog.open(TaskTypeFormDialogComponent, {
       width: '400px',
       data: {
@@ -450,7 +465,7 @@ export class UserDetailComponent implements OnInit {
     });
 
     dialogRef.afterClosed().pipe(takeUntilDestroyed(this.destroyRef)).subscribe((result) => {
-      if (!result) return;
+      if (!result || !this.canWriteTask()) return;
       this.adminUsersService.updateTaskType(this.userId, taskType.id, result).subscribe({
         next: () => {
           this.snackBar.open('Tipo de tarea actualizado correctamente.', 'Cerrar', {
@@ -466,6 +481,7 @@ export class UserDetailComponent implements OnInit {
   }
 
   deleteTaskType(taskType: AdminUserTaskTypeSummary): void {
+    if (!this.canWriteTask()) return;
     const dialogRef = this.dialog.open(ConfirmDialogComponent, {
       width: '400px',
       data: {
@@ -477,7 +493,7 @@ export class UserDetailComponent implements OnInit {
     });
 
     dialogRef.afterClosed().pipe(takeUntilDestroyed(this.destroyRef)).subscribe((confirmed) => {
-      if (!confirmed) return;
+      if (!confirmed || !this.canWriteTask()) return;
       this.adminUsersService.deleteTaskType(this.userId, taskType.id).subscribe({
         next: () => {
           this.snackBar.open('Tipo de tarea eliminado correctamente.', 'Cerrar', {

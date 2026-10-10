@@ -8,13 +8,14 @@
     class="layout-sidenav"
   >
     <div class="sidebar-inner">
-      <a class="brand" routerLink="/dashboard" (click)="closeSidenav()" aria-label="Donit Admin, ir al dashboard">
+      <a class="brand" [routerLink]="homeLink()" (click)="closeSidenav()" aria-label="Donit Admin, ir al inicio">
         <span class="brand-mark" aria-hidden="true"><mat-icon>check_circle</mat-icon></span>
         <span class="brand-copy"><strong>donit</strong><small>ADMIN CONSOLE</small></span>
       </a>
       <div class="nav-caption">ESPACIO DE TRABAJO</div>
       <nav aria-label="Navegación principal">
         <mat-nav-list>
+          @if (demoPermissions.canReadAdmin()) {
           <a mat-list-item routerLink="/dashboard" routerLinkActive="active-link" [routerLinkActiveOptions]="{ exact: true }" (click)="closeSidenav()" aria-label="Dashboard">
             <mat-icon matListItemIcon>dashboard</mat-icon><span matListItemTitle>Dashboard</span>
           </a>
@@ -27,6 +28,12 @@
           <a mat-list-item routerLink="/task-types" routerLinkActive="active-link" (click)="closeSidenav()" aria-label="Tipos de tarea">
             <mat-icon matListItemIcon>category</mat-icon><span matListItemTitle>Tipos de tarea</span>
           </a>
+          }
+          @if (demoPermissions.any()) {
+            <a mat-list-item routerLink="/demo-content" routerLinkActive="active-link" (click)="closeSidenav()" aria-label="Contenido demo">
+              <mat-icon matListItemIcon>inventory_2</mat-icon><span matListItemTitle>Contenido demo</span>
+            </a>
+          }
         </mat-nav-list>
       </nav>
       <div class="sidebar-spacer"></div>

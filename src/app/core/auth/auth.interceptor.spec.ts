@@ -52,6 +52,15 @@ describe('authInterceptor', () => {
     req.flush({});
   });
 
+  it('sends /api/admin/me with bearer token and does not recursively refresh on its 401', () => {
+    authService.getAccessToken.mockReturnValue('test-token');
+    httpClient.get(`${environment.apiUrl}/api/admin/me`).subscribe({ error: () => {} });
+    const req = httpMock.expectOne(`${environment.apiUrl}/api/admin/me`);
+    expect(req.request.headers.get('Authorization')).toBe('Bearer test-token');
+    req.flush('Unauthorized', { status: 401, statusText: 'Unauthorized' });
+    expect(authService.refresh).not.toHaveBeenCalled();
+  });
+
   it('should NOT add Authorization header for non-admin routes', () => {
     authService.getAccessToken.mockReturnValue('test-token');
 
@@ -60,6 +69,15 @@ describe('authInterceptor', () => {
     const req = httpMock.expectOne(`${environment.apiUrl}/api/public/data`);
     expect(req.request.headers.has('Authorization')).toBeFalsy();
     req.flush({});
+  });
+
+  it('keeps public demo requests anonymous with an admin session and strips a supplied bearer token', () => {
+    authService.getAccessToken.mockReturnValue('admin-token');
+    httpClient.get(`${environment.apiUrl}/api/public/demo/stats`, { headers: { Authorization: 'Bearer stale-token' } }).subscribe();
+    const req = httpMock.expectOne(`${environment.apiUrl}/api/public/demo/stats`);
+    expect(req.request.headers.has('Authorization')).toBe(false);
+    expect(authService.getAccessToken).not.toHaveBeenCalled();
+    req.flush({ users: 0, taskTypes: 0, tasks: 0, completedTasks: 0 });
   });
 
   it('should NOT add Authorization header for login endpoint', () => {
