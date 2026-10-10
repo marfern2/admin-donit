@@ -5,6 +5,7 @@ import { DashboardComponent } from './dashboard.component';
 import { AdminUsersService } from '../users/services/admin-users.service';
 import { AdminTasksService } from '../tasks/services/admin-tasks.service';
 import { AdminAuthService } from '../../core/auth/auth.service';
+import { DemoPermissionsService } from '../../core/auth/demo-permissions.service';
 
 describe('DashboardComponent', () => {
   const page = (totalElements: number) => ({ content: [], page: 0, size: 1, totalElements, totalPages: 0, first: true, last: true });
@@ -22,6 +23,7 @@ describe('DashboardComponent', () => {
         { provide: AdminAuthService, useValue: { currentUser: () => ({ username: 'Marcos' }) } },
       ],
     });
+    TestBed.inject(DemoPermissionsService).setPermissions(['ADMIN_READ']);
   });
 
   it('uses paginated totals without downloading complete collections', () => {
@@ -41,5 +43,14 @@ describe('DashboardComponent', () => {
     expect(fixture.componentInstance.metrics()[0].value).toBeNull();
     expect(fixture.componentInstance.metrics()[0].loading).toBe(false);
     expect(fixture.nativeElement.textContent).toContain('No disponible en este momento');
+  });
+
+  it('does not request real admin data or render widgets without ADMIN_READ', () => {
+    TestBed.inject(DemoPermissionsService).setPermissions(['DEMO_READ', 'DEMO_WRITE', 'DEMO_PUBLISH', 'DEMO_RESTORE']);
+    const fixture = TestBed.createComponent(DashboardComponent);
+    fixture.detectChanges();
+    expect(getUsers).not.toHaveBeenCalled();
+    expect(getTasks).not.toHaveBeenCalled();
+    expect(fixture.nativeElement.querySelector('.dashboard')).toBeNull();
   });
 });

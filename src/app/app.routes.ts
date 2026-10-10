@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/auth/auth.guard';
+import { capabilityGuard, landingGuard } from './core/auth/capability.guard';
 
 export const routes: Routes = [
   {
@@ -33,9 +34,10 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./layout/layout.component').then((m) => m.LayoutComponent),
     children: [
-      { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
+      { path: '', pathMatch: 'full', canActivate: [landingGuard], title: 'Acceso insuficiente', loadComponent: () => import('./features/access-insufficient/access-insufficient.component').then(m => m.AccessInsufficientComponent) },
       {
         path: 'dashboard',
+        canActivate: [capabilityGuard('ADMIN_READ')],
         title: 'Dashboard',
         loadComponent: () =>
           import('./features/dashboard/dashboard.component').then((m) => m.DashboardComponent),
@@ -48,18 +50,19 @@ export const routes: Routes = [
       },
       {
         path: 'demo-content',
+        canActivate: [capabilityGuard('DEMO_ANY')],
         children: [
           { path: '', title: 'Contenido demo', loadComponent: () => import('./features/demo-content/demo-dashboard.component').then(m => m.DemoDashboardComponent) },
-          { path: 'fixtures', title: 'Fixtures demo', loadComponent: () => import('./features/demo-content/demo-fixtures.component').then(m => m.DemoFixturesComponent) },
+          { path: 'fixtures', canActivate: [capabilityGuard('DEMO_RESTORE', false)], title: 'Fixtures demo', loadComponent: () => import('./features/demo-content/demo-fixtures.component').then(m => m.DemoFixturesComponent) },
           { path: 'users', children: [
             { path: '', title: 'Usuarios demo', data: { kind: 'users' }, loadComponent: () => import('./features/demo-content/demo-list.component').then(m => m.DemoListComponent) },
             { path: ':id', title: 'Usuario demo', data: { kind: 'users' }, loadComponent: () => import('./features/demo-content/demo-detail.component').then(m => m.DemoDetailComponent) },
-          ] },
-          { path: 'task-types', children: [
+          ], canActivate: [capabilityGuard('DEMO_READ', false)] },
+          { path: 'task-types', canActivate: [capabilityGuard('DEMO_READ', false)], children: [
             { path: '', title: 'Tipos demo', data: { kind: 'task-types' }, loadComponent: () => import('./features/demo-content/demo-list.component').then(m => m.DemoListComponent) },
             { path: ':id', title: 'Tipo demo', data: { kind: 'task-types' }, loadComponent: () => import('./features/demo-content/demo-detail.component').then(m => m.DemoDetailComponent) },
           ] },
-          { path: 'tasks', children: [
+          { path: 'tasks', canActivate: [capabilityGuard('DEMO_READ', false)], children: [
             { path: '', title: 'Tareas demo', data: { kind: 'tasks' }, loadComponent: () => import('./features/demo-content/demo-list.component').then(m => m.DemoListComponent) },
             { path: ':id', title: 'Tarea demo', data: { kind: 'tasks' }, loadComponent: () => import('./features/demo-content/demo-detail.component').then(m => m.DemoDetailComponent) },
           ] },
@@ -67,6 +70,7 @@ export const routes: Routes = [
       },
       {
         path: 'users',
+        canActivate: [capabilityGuard('ADMIN_READ')],
         title: 'Usuarios',
         children: [
           {
@@ -86,6 +90,7 @@ export const routes: Routes = [
       },
       {
         path: 'tasks',
+        canActivate: [capabilityGuard('ADMIN_READ')],
         title: 'Tareas',
         children: [
           {
@@ -105,6 +110,7 @@ export const routes: Routes = [
       },
       {
         path: 'task-types',
+        canActivate: [capabilityGuard('ADMIN_READ')],
         title: 'Tipos de tarea',
         children: [
           {

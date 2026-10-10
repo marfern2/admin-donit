@@ -64,7 +64,15 @@ describe('authGuard', () => {
 
     const result = await TestBed.runInInjectionContext(() => authGuard(mockRoute, mockState));
 
-    expect(router.createUrlTree).toHaveBeenCalledWith(['/login']);
+    expect(router.createUrlTree).toHaveBeenCalledWith(['/login'], { queryParams: {} });
     expect(result).toEqual({});
+  });
+
+  it('preserves a requested private URL for login return', async () => {
+    authService.initialized.mockReturnValue(true);
+    authService.isAuthenticated.mockReturnValue(false);
+    router.createUrlTree.mockReturnValue({} as any);
+    await TestBed.runInInjectionContext(() => authGuard(mockRoute, { url: '/demo-content/tasks/21' } as RouterStateSnapshot));
+    expect(router.createUrlTree).toHaveBeenCalledWith(['/login'], { queryParams: { redirectUrl: '/demo-content/tasks/21' } });
   });
 });

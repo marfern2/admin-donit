@@ -1,4 +1,4 @@
-import { Component, inject, signal, OnInit, DestroyRef } from '@angular/core';
+import { Component, inject, signal, OnInit, DestroyRef, effect } from '@angular/core';
 import { Router, RouterOutlet, RouterLink, RouterLinkActive, NavigationEnd } from '@angular/router';
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import { MatSidenavModule } from '@angular/material/sidenav';
@@ -7,12 +7,13 @@ import { MatListModule } from '@angular/material/list';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
-import { filter, map } from 'rxjs';
+import { filter, fromEvent, interval, map, merge } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { AdminAuthService } from '../core/auth/auth.service';
 import { ThemePreference, ThemeService } from '../core/theme/theme.service';
 import { RuntimeConfigService } from '../core/config/runtime-config.service';
 import { DemoPermissionsService } from '../core/auth/demo-permissions.service';
+import { canOpenPrivateUrl, privateLanding } from '../core/auth/capability.guard';
 
 @Component({
   selector: 'app-layout',
@@ -34,11 +35,26 @@ import { DemoPermissionsService } from '../core/auth/demo-permissions.service';
 export class LayoutComponent implements OnInit {
   readonly authService = inject(AdminAuthService);
   readonly demoPermissions = inject(DemoPermissionsService);
+  readonly homeLink = () => privateLanding(this.demoPermissions);
   readonly theme = inject(ThemeService);
   private readonly runtimeConfig = inject(RuntimeConfigService);
   private readonly router = inject(Router);
   private readonly breakpointObserver = inject(BreakpointObserver);
   private readonly destroyRef = inject(DestroyRef);
+
+  constructor() {
+    effect(() => {
+      this.demoPermissions.permissions();
+      const current = this.router.url;
+      if (current === '/' && this.router.navigated && privateLanding(this.demoPermissions) !== '/') {
+        this.router.navigateByUrl(privateLanding(this.demoPermissions));
+        return;
+      }
+      if (current !== '/' && current !== '/settings' && !canOpenPrivateUrl(current, this.demoPermissions)) {
+        this.router.navigateByUrl(privateLanding(this.demoPermissions));
+      }
+    });
+  }
 
   readonly sidenav = signal(false);
   readonly isMobile = signal(false);
@@ -61,6 +77,10 @@ export class LayoutComponent implements OnInit {
   };
 
   ngOnInit(): void {
+    merge(interval(30_000), fromEvent(window, 'focus'))
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => this.authService.revalidatePermissions().subscribe({ error: () => {} }));
+
     this.breakpointObserver
       .observe([Breakpoints.Handset, Breakpoints.TabletPortrait])
       .pipe(takeUntilDestroyed(this.destroyRef))

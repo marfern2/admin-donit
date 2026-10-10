@@ -50,9 +50,9 @@ export class DemoDashboardComponent {
   constructor() {
     effect(() => {
       if (this.permissions.has('DEMO_READ') && !this.requestedStats) { this.requestedStats = true; this.load(); }
-      if (!this.permissions.has('DEMO_READ')) { this.stats.set(null); this.loading.set(false); this.requestedStats = false; }
+      if (!this.permissions.has('DEMO_READ')) { this.stats.set(null); this.loading.set(false); this.error.set(''); this.requestedStats = false; }
       if (this.permissions.has('DEMO_RESTORE') && !this.requestedPreview) { this.requestedPreview = true; this.loadPreview(); }
-      if (!this.permissions.has('DEMO_RESTORE')) { this.catalog.set(null); this.requestedPreview = false; }
+      if (!this.permissions.has('DEMO_RESTORE')) { this.catalog.set(null); this.catalogError.set(''); this.requestedPreview = false; }
     });
   }
   catalogConflicts(): boolean {
@@ -68,6 +68,7 @@ export class DemoDashboardComponent {
     });
   }
   load(): void {
+    if (!this.permissions.has('DEMO_READ')) return;
     this.loading.set(true); this.error.set('');
     this.api.stats().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: stats => { this.stats.set(stats); this.loading.set(false); },

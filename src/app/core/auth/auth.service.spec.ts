@@ -116,6 +116,29 @@ describe('AdminAuthService', () => {
       expect(demoPermissions.canWriteDemo()).toBe(false);
     });
 
+    it('revalidates changed /api/admin/me permissions during the session', () => {
+      const permissions = TestBed.inject(DemoPermissionsService);
+      service.login({ email: 'admin@test.com', password: 'pass' }).subscribe();
+      httpMock.expectOne(`${environment.apiUrl}/api/admin/auth/login`).flush(mockLoginResponse);
+      flushMe(['ADMIN_READ', 'DEMO_READ']);
+      service.revalidatePermissions().subscribe();
+      flushMe(['DEMO_RESTORE']);
+      expect(permissions.canReadAdmin()).toBe(false);
+      expect(permissions.canReadDemo()).toBe(false);
+      expect(permissions.canRestoreDemo()).toBe(true);
+    });
+
+    it('shares an in-flight identity lookup between route and focus checks', () => {
+      service.login({ email: 'admin@test.com', password: 'pass' }).subscribe();
+      httpMock.expectOne(`${environment.apiUrl}/api/admin/auth/login`).flush(mockLoginResponse);
+      const focused = vi.fn();
+      service.revalidatePermissions().subscribe(focused);
+      const pending = httpMock.match(meUrl);
+      expect(pending).toHaveLength(1);
+      pending[0].flush({ username: 'admin', permissions: ['DEMO_READ'] });
+      expect(focused).toHaveBeenCalledOnce();
+    });
+
     it('should not set session on error', () => {
       service.login({ email: 'admin@test.com', password: 'wrong' }).subscribe({
         error: () => {},

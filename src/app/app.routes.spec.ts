@@ -10,11 +10,14 @@ describe('admin routes', () => {
       expect(section.children?.map(route => route.path)).toEqual(['', ':publicId']);
     }
   });
-  it('redirects the protected root to the dashboard', () => {
+  it('resolves the protected root through a capability landing guard', () => {
     const shell = routes.find((route) => route.path === '');
     expect(shell?.canActivate?.length).toBe(1);
-    expect(shell?.children?.find((route) => route.path === '')?.redirectTo).toBe('dashboard');
+    expect(shell?.children?.find((route) => route.path === '')?.canActivate?.length).toBe(1);
     expect(shell?.children?.some((route) => route.path === 'dashboard')).toBe(true);
+    for (const path of ['dashboard', 'users', 'tasks', 'task-types', 'demo-content']) {
+      expect(shell?.children?.find(route => route.path === path)?.canActivate?.length).toBe(1);
+    }
   });
   it('keeps every demo-content route under the private shell', () => {
     const shell = routes.find(route => route.path === '');

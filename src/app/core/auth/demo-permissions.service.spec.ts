@@ -37,5 +37,17 @@ describe('DemoPermissionsService', () => {
     expect(service.canUseDemoPublication()).toBe(false);
     service.setPermissions(['ADMIN_READ']);
     expect(service.any()).toBe(false);
+    expect(service.canReadAdmin()).toBe(true);
+  });
+  it('updates admin and demo capabilities independently on revocation', () => {
+    service.setPermissions(['ADMIN_READ', 'DEMO_READ', 'DEMO_RESTORE']);
+    expect(service.canReadAdmin()).toBe(true);
+    expect(service.any()).toBe(true);
+    service.setPermissions(['DEMO_RESTORE']);
+    expect(service.canReadAdmin()).toBe(false);
+    expect(service.canReadDemo()).toBe(false);
+    expect(service.canRestoreDemo()).toBe(true);
+    service.clear();
+    expect(service.any()).toBe(false);
   });
 });
