@@ -44,6 +44,7 @@ export class LayoutComponent implements OnInit {
 
   constructor() {
     effect(() => {
+      if (!this.authService.isAuthenticated()) return;
       this.demoPermissions.permissions();
       const current = this.router.url;
       if (current === '/' && this.router.navigated && privateLanding(this.demoPermissions) !== '/') {

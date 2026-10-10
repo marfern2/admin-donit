@@ -14,13 +14,14 @@ import { DemoPermissionsService } from '../core/auth/demo-permissions.service';
 describe('LayoutComponent', () => {
   let component: LayoutComponent;
   let fixture: ComponentFixture<LayoutComponent>;
-  let authService: { currentUser: ReturnType<typeof vi.fn>; logout: ReturnType<typeof vi.fn>; revalidatePermissions: ReturnType<typeof vi.fn> };
+  let authService: { currentUser: ReturnType<typeof vi.fn>; isAuthenticated: ReturnType<typeof vi.fn>; logout: ReturnType<typeof vi.fn>; revalidatePermissions: ReturnType<typeof vi.fn> };
   let breakpointSubject: Subject<any>;
 
   beforeEach(async () => {
     breakpointSubject = new Subject();
     authService = {
       currentUser: vi.fn().mockReturnValue({ email: 'admin@test.com' }),
+      isAuthenticated: vi.fn().mockReturnValue(true),
       logout: vi.fn(),
       revalidatePermissions: vi.fn(() => of(undefined)),
     };
