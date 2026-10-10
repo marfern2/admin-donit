@@ -1,6 +1,6 @@
-import { Component, signal, OnInit, AfterViewInit, ElementRef, ViewChild } from '@angular/core';
+import { Component, signal, AfterViewInit, ElementRef, ViewChild } from '@angular/core';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
@@ -8,6 +8,8 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatCardModule } from '@angular/material/card';
 import { AdminAuthService } from '../../core/auth/auth.service';
+import { canOpenPrivateUrl, privateLanding } from '../../core/auth/capability.guard';
+import { DemoPermissionsService } from '../../core/auth/demo-permissions.service';
 import { adminErrorMessage } from '../../shared/admin-error-message';
 
 @Component({
@@ -37,6 +39,8 @@ export class LoginComponent implements AfterViewInit {
     private fb: FormBuilder,
     private authService: AdminAuthService,
     private router: Router,
+    private route: ActivatedRoute,
+    private permissions: DemoPermissionsService,
   ) {
     this.loginForm = this.fb.nonNullable.group({
       email: ['', [Validators.required, Validators.email]],
@@ -59,7 +63,9 @@ export class LoginComponent implements AfterViewInit {
 
     this.authService.login(this.loginForm.getRawValue()).subscribe({
       next: () => {
-        this.router.navigate(['/dashboard']);
+        const requested = this.route.snapshot.queryParamMap.get('redirectUrl');
+        const target = requested && canOpenPrivateUrl(requested, this.permissions) ? requested : privateLanding(this.permissions);
+        this.router.navigateByUrl(target);
       },
       error: (error) => {
         this.loading.set(false);

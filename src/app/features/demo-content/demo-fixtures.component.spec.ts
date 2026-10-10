@@ -44,8 +44,16 @@ describe('DemoFixturesComponent', () => {
     expect(dialog.open).toHaveBeenCalledTimes(1);
     expect(api.restore).toHaveBeenCalledWith('"v1-header"');
     expect(api.preview).toHaveBeenCalledTimes(2);
-    expect(api.stats).toHaveBeenCalledTimes(1);
+    expect(api.stats).not.toHaveBeenCalled();
     expect(fixture.nativeElement.textContent).toContain('Restauración completada');
+  });
+
+  it('refreshes statistics after restore only with DEMO_READ', () => {
+    permissions.setPermissions(['DEMO_READ', 'DEMO_RESTORE']);
+    const fixture = TestBed.createComponent(DemoFixturesComponent);
+    fixture.componentInstance.previewRestore();
+    fixture.componentInstance.confirmRestore();
+    expect(api.stats).toHaveBeenCalledTimes(1);
   });
 
   it('blocks restore when preview reports conflicts', () => {

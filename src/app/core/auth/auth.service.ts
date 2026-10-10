@@ -1,7 +1,7 @@
 import { Injectable, signal, computed } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { Observable, tap, catchError, throwError, of, firstValueFrom, switchMap, map } from 'rxjs';
+import { Observable, tap, catchError, throwError, of, firstValueFrom, switchMap, map, finalize, shareReplay } from 'rxjs';
 import { RuntimeConfigService } from '../config/runtime-config.service';
 import { DemoPermissionsService } from './demo-permissions.service';
 import {
@@ -21,6 +21,8 @@ export class AdminAuthService {
   private readonly _session = signal<AdminSession | null>(null);
   private readonly _initialized = signal(false);
   private initialization: Promise<void> | null = null;
+  private identityRequestId = 0;
+  private permissionLookup: { token: string; request: Observable<void> } | null = null;
 
   readonly initialized = this._initialized.asReadonly();
   readonly session = this._session.asReadonly();
@@ -88,7 +90,7 @@ export class AdminAuthService {
   }
 
   login(credentials: AdminLoginRequest): Observable<AdminLoginResponse> {
-    this.demoPermissions.clear();
+    this.invalidateCapabilities();
     return this.http.post<AdminLoginResponse>(`${this.apiUrl}/login`, credentials).pipe(
       tap((response) => {
         this._session.set({
@@ -101,7 +103,7 @@ export class AdminAuthService {
         this.persistSession();
         this._initialized.set(true);
       }),
-      switchMap(response => this.loadCurrentPermissions().pipe(map(() => response))),
+      switchMap(response => this.revalidatePermissions().pipe(map(() => response))),
     );
   }
 
@@ -111,7 +113,7 @@ export class AdminAuthService {
       return throwError(() => new Error('No refresh token available'));
     }
 
-    this.demoPermissions.clear();
+    this.invalidateCapabilities();
     return this.http
       .post<AdminRefreshResponse>(`${this.apiUrl}/refresh`, {
         refreshToken: currentRefresh,
@@ -128,16 +130,35 @@ export class AdminAuthService {
             this.persistSession();
           }
         }),
-        switchMap(response => this.loadCurrentPermissions().pipe(map(() => response))),
+        switchMap(response => this.revalidatePermissions().pipe(map(() => response))),
       );
+  }
+
+  /** Revalidate capabilities while a private session is active. */
+  revalidatePermissions(): Observable<void> {
+    const token = this.getAccessToken();
+    if (!token) {
+      this.invalidateCapabilities();
+      return of(undefined);
+    }
+    if (this.permissionLookup?.token === token) return this.permissionLookup.request;
+    const request = this.loadCurrentPermissions().pipe(
+      finalize(() => {
+        if (this.permissionLookup?.request === request) this.permissionLookup = null;
+      }),
+      shareReplay({ bufferSize: 1, refCount: true }),
+    );
+    this.permissionLookup = { token, request };
+    return request;
   }
 
   /** A failed identity lookup leaves sensitive capabilities unavailable. */
   private loadCurrentPermissions(): Observable<void> {
     const token = this.getAccessToken();
+    const requestId = ++this.identityRequestId;
     return this.http.get<{ username: string; permissions: string[] }>(this.meUrl).pipe(
       tap(identity => {
-        if (token !== this.getAccessToken()) return;
+        if (requestId !== this.identityRequestId || token !== this.getAccessToken()) return;
         if (identity?.username !== this._session()?.username || !Array.isArray(identity.permissions)) {
           this.demoPermissions.clear();
           return;
@@ -146,7 +167,7 @@ export class AdminAuthService {
       }),
       map(() => undefined),
       catchError(error => {
-        if (token !== this.getAccessToken()) return of(undefined);
+        if (requestId !== this.identityRequestId || token !== this.getAccessToken()) return of(undefined);
         this.demoPermissions.clear();
         if (error?.status === 401) {
           this.logout();
@@ -158,7 +179,7 @@ export class AdminAuthService {
   }
 
   logout(): void {
-    this.demoPermissions.clear();
+    this.invalidateCapabilities();
     const currentRefresh = this._session()?.refreshToken;
     if (currentRefresh) {
       this.http
@@ -172,6 +193,12 @@ export class AdminAuthService {
 
   getAccessToken(): string | null {
     return this._session()?.accessToken ?? null;
+  }
+
+  private invalidateCapabilities(): void {
+    this.identityRequestId++;
+    this.permissionLookup = null;
+    this.demoPermissions.clear();
   }
 
   private persistSession(): void {

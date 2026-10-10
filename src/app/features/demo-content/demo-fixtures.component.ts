@@ -98,10 +98,12 @@ export class DemoFixturesComponent {
     this.api.restore(etag).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: response => {
         this.result.set(response.body); this.busy.set(false); this.previewRestore();
-        this.api.stats().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-          next: stats => this.stats.set(stats),
-          error: error => this.error.set(`Restauración completada, pero no se pudieron actualizar las estadísticas: ${demoError(error).message}`),
-        });
+        if (this.permissions.has('DEMO_READ')) {
+          this.api.stats().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+            next: stats => this.stats.set(stats),
+            error: error => this.error.set(`Restauración completada, pero no se pudieron actualizar las estadísticas: ${demoError(error).message}`),
+          });
+        }
       },
       error: error => {
         const issue = demoError(error);

@@ -9,6 +9,7 @@ import { of } from 'rxjs';
 import { UserDetailComponent } from './user-detail.component';
 import { RuntimeConfigService } from '../../core/config/runtime-config.service';
 import { environment } from '../../../environments/environment';
+import { DemoPermissionsService } from '../../core/auth/demo-permissions.service';
 
 describe('UserDetailComponent', () => {
   let component: UserDetailComponent;
@@ -123,6 +124,8 @@ describe('UserDetailComponent', () => {
       ],
     }).compileComponents();
 
+    TestBed.inject(DemoPermissionsService).setPermissions(['ADMIN_READ', 'USER_WRITE', 'USER_DELETE', 'TASK_WRITE']);
+
     fixture = TestBed.createComponent(UserDetailComponent);
     component = fixture.componentInstance;
     httpMock = TestBed.inject(HttpTestingController);
@@ -135,6 +138,23 @@ describe('UserDetailComponent', () => {
   it('should create', () => {
     flushAll();
     expect(component).toBeTruthy();
+  });
+
+  it.each([
+    ['ADMIN_READ'],
+    ['USER_WRITE', 'USER_DELETE', 'TASK_WRITE'],
+  ])('hides mutations unless the account has both read access and write grants: %j', (...grants) => {
+    flushAll();
+    TestBed.inject(DemoPermissionsService).setPermissions(grants);
+    fixture.detectChanges();
+    const el: HTMLElement = fixture.nativeElement;
+    expect(el.querySelector('[aria-label="Editar usuario"]')).toBeNull();
+    expect(el.querySelector('[aria-label="Eliminar usuario"]')).toBeNull();
+    expect(component.taskColumns()).not.toContain('actions');
+    expect(component.taskTypeColumns()).not.toContain('actions');
+    component.openEditUserDialog();
+    component.deleteUser();
+    expect(httpMock.match(req => req.method !== 'GET')).toEqual([]);
   });
 
   it('should load user on init', () => {

@@ -1,9 +1,12 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
-import { provideRouter } from '@angular/router';
+import { provideRouter, Router } from '@angular/router';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { LoginComponent } from './login.component';
+import { AdminAuthService } from '../../core/auth/auth.service';
+import { DemoPermissionsService } from '../../core/auth/demo-permissions.service';
+import { of } from 'rxjs';
 
 describe('LoginComponent', () => {
   let component: LoginComponent;
@@ -93,5 +96,19 @@ describe('LoginComponent', () => {
     const el: HTMLElement = fixture.nativeElement;
     const button = el.querySelector('button[type="submit"]') as HTMLButtonElement;
     expect(button.disabled).toBeTruthy();
+  });
+
+  it.each([
+    [['DEMO_READ', 'DEMO_WRITE', 'DEMO_PUBLISH', 'DEMO_RESTORE'], '/demo-content'],
+    [['ADMIN_READ', 'USER_WRITE', 'USER_DELETE', 'TASK_WRITE'], '/dashboard'],
+    [['ADMIN_READ', 'DEMO_READ'], '/dashboard'],
+    [[], '/'],
+  ] as const)('lands according to current permissions %j', (values, destination) => {
+    TestBed.inject(DemoPermissionsService).setPermissions(values);
+    vi.spyOn(TestBed.inject(AdminAuthService), 'login').mockReturnValue(of({ token: 'token', refreshToken: 'refresh', id: 1, username: 'admin', email: 'admin@test.com', type: 'Bearer' }));
+    const navigate = vi.spyOn(TestBed.inject(Router), 'navigateByUrl');
+    component.loginForm.setValue({ email: 'admin@test.com', password: 'password123' });
+    component.onSubmit();
+    expect(navigate).toHaveBeenCalledWith(destination);
   });
 });
