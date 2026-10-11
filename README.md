@@ -2,7 +2,7 @@
 
 Donit Admin es el panel web de administración de Donit. Permite consultar y gestionar usuarios, tareas y tipos de tarea reales, y mantener un catálogo de demostración separado. Donit también incluye una API Spring Boot, que autentica y autoriza las operaciones, y una aplicación Android Kotlin/Compose para usuarios. Este repositorio contiene la web Angular y su despliegue; no contiene el backend ni Android.
 
-**Estado:** Donit Admin v1.0.0 está desplegado y validado en producción en [admin-donit.marfern.dev](https://admin-donit.marfern.dev). El catálogo público está en [admin-donit.marfern.dev/demo](https://admin-donit.marfern.dev/demo). En la validación de esta release, PROD sirve el Admin del commit `8e04d92a4e9ff936796415f31f0799e6d0354b66` y el backend del commit `a37fd8e24481bca1c6178fdc3e033b0e3ff3dd50`. La demo PROD tiene **6 usuarios, 12 tipos, 24 tareas y 8 tareas completadas**; manifest v1, revisión 1. Estas cifras describen el estado validado, no un valor fijo de la interfaz.
+**Estado:** Donit Admin v1.0.0 está desplegado y validado en producción en [admin-donit.marfern.dev](https://admin-donit.marfern.dev). El catálogo público está en [admin-donit.marfern.dev/demo](https://admin-donit.marfern.dev/demo). En la validación de esta release, PROD sirve el Admin del commit `6230ab24148dcc2838ac9766b34f547cc18ddb88` y el backend del commit `a37fd8e24481bca1c6178fdc3e033b0e3ff3dd50`. La demo PROD tiene **6 usuarios, 12 tipos, 24 tareas y 8 tareas completadas**; manifest v1, revisión 1. Estas cifras describen el estado validado, no un valor fijo de la interfaz.
 
 ## Arquitectura y tecnologías
 
