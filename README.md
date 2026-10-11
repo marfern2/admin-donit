@@ -1,49 +1,53 @@
-# Donit — Web y Admin
+# Donit Admin v1.0.0
 
-Donit es una aplicación de gestión de tareas formada por una API Spring Boot, esta web Angular y una aplicación Android Kotlin/Compose. Este repositorio contiene el panel privado de administración y un catálogo público de demostración de solo lectura.
+Donit Admin es el panel web de administración de Donit. Permite consultar y gestionar usuarios, tareas y tipos de tarea reales, y mantener un catálogo de demostración separado. Donit también incluye una API Spring Boot, que autentica y autoriza las operaciones, y una aplicación Android Kotlin/Compose para usuarios. Este repositorio contiene la web Angular y su despliegue; no contiene el backend ni Android.
 
-## Catálogo público `/demo`
+**Estado:** Donit Admin v1.0.0 está desplegado y validado en producción en [admin-donit.marfern.dev](https://admin-donit.marfern.dev). El catálogo público está en [admin-donit.marfern.dev/demo](https://admin-donit.marfern.dev/demo). En la validación de esta release, PROD sirve el Admin del commit `8e04d92a4e9ff936796415f31f0799e6d0354b66` y el backend del commit `a37fd8e24481bca1c6178fdc3e033b0e3ff3dd50`. La demo PROD tiene **6 usuarios, 12 tipos, 24 tareas y 8 tareas completadas**; manifest v1, revisión 1. Estas cifras describen el estado validado, no un valor fijo de la interfaz.
 
-La experiencia pública tiene layout y modelos propios, separados del backoffice. Rutas: `/demo`, `/demo/users`, `/demo/users/:publicId`, `/demo/task-types`, `/demo/task-types/:publicId`, `/demo/tasks` y `/demo/tasks/:publicId`. Todos los IDs de estas rutas son `publicId` UUID; no se exponen IDs internos, datos administrativos ni permisos.
+## Arquitectura y tecnologías
 
-`PublicDemoApiService` consume únicamente `GET /api/public/demo/**` con la URL base de `runtime-config.json`. El interceptor elimina `Authorization` en estas peticiones, incluso si existe una sesión admin. La configuración runtime se carga globalmente; la restauración de sesión admin y su llamada de refresh solo ocurren al entrar en rutas privadas protegidas por `authGuard`. Abrir `/demo` de forma anónima no inicia la sesión admin. El acceso administrativo sigue en `/login` y el resto de rutas privadas no cambia.
+- Angular 21, Angular Material y CSS nativo con CSS nesting; diseño responsive y temas claro, oscuro o según el sistema.
+- Vitest mediante el test runner de Angular para pruebas unitarias y de integración de rutas.
+- nginx sirve el bundle y `/health`; Docker empaqueta la web y GHCR distribuye imágenes identificadas por el SHA del commit.
+- La misma imagen sirve DEV y PROD. Al iniciar el contenedor, `DONIT_API_URL` genera `/config/runtime-config.json`; Angular lo carga y valida antes de arrancar. El archivo solo contiene la URL pública de la API.
+- La autenticación administrativa del backend es independiente de la aplicación Android. La web usa `/api/admin/**` para el panel privado y `/api/public/demo/**` para el catálogo anónimo.
 
-Los listados sincronizan búsqueda, orden, filtros, página y tamaño con la URL para conservar el estado al recargar y usar atrás/adelante. La búsqueda se recorta, espera 300 ms y solo se envía con 2–60 caracteres; los parámetros fuera de rango se ignoran y las solicitudes anteriores se cancelan. Usuarios ordena por `displayName` o `handle`; tipos por `name`; tareas por `dueDate` o `title`. Los filtros públicos son `userPublicId`, `taskTypePublicId`, `completed` y `urgency` según la sección. Los campos de usuario y tipo ofrecen sugerencias públicas al enfocarse (primeros 20 resultados) y también aceptan un UUID pegado. Las pantallas incluyen estados de carga, vacío, error y datos, también cuando DEV no tiene elementos publicados.
+## Rutas y permisos
 
-La web no incluye mocks en runtime. El catálogo DEV publicado contiene actualmente 6 usuarios, 12 tipos y 24 tareas, de las que 8 están completadas. En la comprobación local anterior, la API DEV permitió el origen `https://admin-dev.marfern.dev`, pero respondió 403 a `http://localhost:4200` y `http://127.0.0.1:4300`; el QA local con datos reales requiere un proxy o un origen autorizado.
+| Área | Rutas | Acceso |
+|---|---|---|
+| Catálogo público | `/demo`, `/demo/users`, `/demo/task-types`, `/demo/tasks` y sus detalles `/:publicId` | Anónimo, solo lectura. Usa `publicId` UUID y `GET /api/public/demo/**` sin `Authorization`. |
+| Inicio de sesión | `/login` | Autenticación administrativa. |
+| Datos reales | `/dashboard`, `/users`, `/tasks`, `/task-types` y sus detalles | Sesión privada y `ADMIN_READ` para lectura. `USER_WRITE`, `USER_DELETE` y `TASK_WRITE` habilitan sus mutaciones correspondientes junto con `ADMIN_READ`. |
+| Contenido demo | `/demo-content`, `/demo-content/users`, `/demo-content/task-types`, `/demo-content/tasks` y detalles | Sesión privada y algún permiso DEMO; los listados y detalles requieren `DEMO_READ`. |
+| Fixtures demo | `/demo-content/fixtures` | Sesión privada y `DEMO_RESTORE`. |
+| Preferencias | `/settings` | Sesión privada; selección de tema claro, oscuro o sistema. |
 
-## Gestión privada `/demo-content`
+Tras el login y cada renovación de sesión, la web consulta `GET /api/admin/me`. Los permisos admitidos son `ADMIN_READ`, `USER_WRITE`, `USER_DELETE`, `TASK_WRITE`, `DEMO_READ`, `DEMO_WRITE`, `DEMO_PUBLISH` y `DEMO_RESTORE`. `DEMO_WRITE` permite crear, editar y borrar recursos demo; `DEMO_PUBLISH` permite publicar y despublicar; `DEMO_RESTORE` permite previsualizar y restaurar fixtures. Las operaciones sobre recursos demo necesitan además `DEMO_READ` en la UI para obtener datos y ETag. La API es la autoridad final para cada operación.
 
-Las rutas `/demo-content`, `/demo-content/users`, `/demo-content/users/:id`, `/demo-content/task-types`, `/demo-content/task-types/:id`, `/demo-content/tasks`, `/demo-content/tasks/:id` y `/demo-content/fixtures` viven bajo el layout y guard privados. Usan IDs internos demo. `DemoAdminApiService` consume solo `/api/admin/demo/**` y el interceptor privado añade `Authorization`. `PublicDemoApiService` y `/demo/**` siguen separados y anónimos.
+Los guards protegen las rutas privadas y filtran el acceso según capacidades. Una cuenta con permisos solo DEMO puede entrar en `/demo-content` sin acceso a los datos reales. La navegación inicial y tras cerrar sesión lleva a una ruta permitida o a `/login`; una URL privada no autorizada no se abre. Si `/api/admin/me` falla, las capacidades sensibles se vacían (fail-closed); un 401 termina la sesión. El logout limpia la sesión local y solicita la invalidación del refresh token al backend.
 
-La API exige permisos independientes: `DEMO_READ` para listados, detalles y stats; `DEMO_WRITE` para crear, editar y borrar; `DEMO_PUBLISH` para publicar o despublicar; `DEMO_RESTORE` para preview y restore. No existe DELETE de usuarios. Tras login y cada refresh, la UI consulta `GET /api/admin/me` y mantiene sus permisos solo en memoria. Una consulta fallida vacía las capacidades sensibles; un 401 termina la sesión. El sidebar se muestra con cualquier permiso DEMO, pero los controles CRUD requieren además `DEMO_READ` porque necesitan consultar recursos y ETag. El backend sigue siendo la autoridad final.
+## Catálogo público
 
-Cada GET individual y mutación de recurso conserva el ETag de respuesta. PATCH, DELETE y cambios de publicación envían ese valor literal en `If-Match`. Un 412 muestra que los datos cambiaron y ofrece recarga; un 428 señala falta de precondición. El preview de fixtures conserva su ETag opaco y restore lo envía sin reconstruirlo. Restore requiere preview de menos de cinco minutos y confirmación; tras un éxito se refrescan preview y stats, sin publicar nada. Los fixtures gestionados vuelven al manifest en DRAFT; los registros personalizados no se modifican. La API privada de recursos no expone `fixture_key` ni un indicador fixture/custom, por lo que los listados no pueden distinguirlos. El preview sí informa el total de registros personalizados.
+`/demo/**` presenta datos sintéticos publicados: 6 usuarios, 12 tipos de tarea, 24 tareas y 8 completadas en el estado PROD validado. Tiene layout y modelos propios. Los listados conservan búsqueda, filtros, orden y paginación en la URL, y muestran estados de carga, vacío y error. La UI también soporta un catálogo sin elementos publicados. No hay mocks en runtime ni se exponen IDs internos o permisos administrativos.
 
-Obtener ETag requiere GET con `DEMO_READ`. Una cuenta que solo tenga `DEMO_WRITE` o solo `DEMO_PUBLISH` ve el acceso lateral y un mensaje claro, sin listados ni controles de mutación. Los formularios de tipos y tareas también necesitan lectura para ofrecer usuarios y tipos relacionados.
+`PublicDemoApiService` usa solo `GET /api/public/demo/**`. El interceptor elimina `Authorization` de estas peticiones aunque exista una sesión administrativa. Entrar en `/demo` anónimamente no intenta renovar la sesión privada.
 
-En DEV, la preflight desde `https://admin-dev.marfern.dev` permite `Authorization`, `Content-Type` e `If-Match`, y expone `ETag` y `Retry-After`. El frontend conserva literalmente el ETag de las respuestas y lo envía en `If-Match` sin reconstruirlo.
+## Gestión privada de la demo
 
-Los listados conservan página, tamaño, búsqueda, filtros y orden en query params. La UI trata 400 (validación), 401 (sesión), 403 (permiso), 404, 409 (conflicto), 412, 428, 429 (incluido `Retry-After`) y 5xx sin exponer trazas. Un 409 de DELETE de tipo indica que tiene tareas asociadas. El frontend no reintenta automáticamente tras 429.
+`/demo-content/**` usa `DemoAdminApiService` y `/api/admin/demo/**` con autenticación. Permite leer, editar y publicar contenido según los permisos independientes. La publicación es una acción separada de la edición y de la restauración. No existe borrado de usuarios demo.
 
-## Stack y arquitectura
+La UI conserva el ETag opaco que devuelve cada GET individual y lo envía literalmente en `If-Match` al editar, borrar o cambiar la publicación. Un `412` indica que los datos cambiaron y requiere recarga; un `428` indica una precondición ausente. Un `429` muestra el límite y, si existe, `Retry-After`; la web no reintenta automáticamente. También se muestran errores de validación, permisos, conflictos y servidor sin exponer trazas.
 
-- Angular 21 y Angular Material.
-- nginx sirve el frontend y `/health`; Docker y GHCR distribuyen la imagen.
-- La API ofrece autenticación de administrador separada de la de usuarios Android.
-- La misma imagen sirve DEV y PROD. Al arrancar, `DONIT_API_URL` genera `/config/runtime-config.json`; Angular lo carga y valida antes de iniciar las rutas.
+En `/demo-content/fixtures`, `restore-preview` muestra el efecto previsto, incluidos conflictos y el número de registros personalizados, sin modificar datos. La restauración exige `DEMO_RESTORE`, un preview reciente (menos de cinco minutos), su ETag en `If-Match` y confirmación explícita. **La restauración nunca ocurre automáticamente.** Los fixtures gestionados vuelven al manifest en estado DRAFT; los registros personalizados no se modifican. Después se actualizan preview y estadísticas disponibles. Restaurar no publica: la publicación se hace aparte. Un catálogo vacío también puede previsualizarse y restaurarse explícitamente.
 
-## Entornos
+## Entornos y ejecución local
 
 | Entorno | Admin | API | Puerto Admin en el host |
 |---|---|---|---|
-| LOCAL | `http://localhost:4200` | `http://localhost:8080` | `4200` |
+| LOCAL | `http://localhost:4200` | `http://localhost:8080` | `4200` (servidor Angular) |
 | DEV | `https://admin-dev.marfern.dev` | `https://donit-api-dev.marfern.dev` | `127.0.0.1:8083` |
 | PROD | `https://admin-donit.marfern.dev` | `https://donit-api.marfern.dev` | `127.0.0.1:8081` |
-
-DEV y PROD tienen configuración runtime y despliegues separados. La URL de API se decide al arrancar el contenedor, no durante el build. Detalles en [ENVIRONMENTS.md](ENVIRONMENTS.md).
-
-## Ejecución local
 
 Con Node.js 22 y npm:
 
@@ -52,27 +56,23 @@ npm ci
 npm start
 ```
 
-Abrir `http://localhost:4200`. El servidor de desarrollo lee `public/config/runtime-config.json`, que apunta a la API local. Para generar el bundle de la imagen: `npm run build:image` (salida en `dist/`). Configuración Docker y comprobaciones manuales en [DEPLOYMENT.md](DEPLOYMENT.md).
+Abrir `http://localhost:4200`. En desarrollo, `public/config/runtime-config.json` apunta a la API local. Para un bundle de producción independiente del entorno: `npm run build:image`. DEV y PROD tienen configuración runtime y despliegues separados; la URL de API se decide al iniciar el contenedor. Consultar [ENVIRONMENTS.md](ENVIRONMENTS.md) y [DEPLOYMENT.md](DEPLOYMENT.md) para operación y rollback.
 
-## Tests
+## Pruebas y controles
 
 ```bash
 npm test -- --watch=false
 npm run test:audit
+npm run build:image
+node scripts/audit-dependencies.mjs
+npm audit --omit=dev --audit-level=high
+git diff --check
 ```
 
-CI también ejecuta controles de dependencias y construye el bundle independiente del entorno.
+`npm test -- --watch=false` ejecuta la suite Angular canónica con Vitest. El verificador de dependencias cubre también tooling de desarrollo y mantiene una excepción específica y temporal para [GHSA-ch52-4w7c-c8xp](https://github.com/advisories/GHSA-ch52-4w7c-c8xp). `npm audit --omit=dev --audit-level=high` comprueba por separado las dependencias de producción.
 
-## CI/CD
+## Despliegue y seguridad
 
-`feature/*` se integra en `develop` para DEV; `develop` se promueve a `master` para PROD. GitHub Actions publica `ghcr.io/marfern2/admin-donit:<SHA40>`. Pollers systemd seleccionan el commit y usan imagen y artefactos operativos del mismo SHA, sin depender de que el working tree del servidor esté limpio. El despliegue valida contenedor healthy, `/health`, URL de API exacta en runtime config e imagen SHA40 antes de escribir `.deployed-sha`; en éxito no queda `.failed-sha`.
+GitHub Actions construye y publica `ghcr.io/marfern2/admin-donit:<SHA40>` al integrar en `develop` (DEV) o `master` (PROD). Los pollers systemd seleccionan el SHA y despliegan la imagen con los artefactos operativos del mismo commit. Antes de registrar un despliegue validan contenedor, `/health`, URL de API de runtime e imagen exacta; el procedimiento de rollback está en [ENVIRONMENTS.md](ENVIRONMENTS.md).
 
-La allowlist de artefactos incluye Compose, `scripts/cd-poll.sh` y `scripts/cd-deploy.sh`. Procedimiento y rollback en [ENVIRONMENTS.md](ENVIRONMENTS.md).
-
-## Seguridad
-
-El panel usa la autenticación de administrador del backend. `/config/runtime-config.json` solo contiene la URL pública de API: no admite secretos. Cada entorno exige su propia `DONIT_API_URL` y comprueba que corresponde a DEV o PROD. CI aplica `npm audit --omit=dev --audit-level=high` y el gate completo de `scripts/audit-dependencies.mjs`. Este último mantiene una excepción temporal y específica para [GHSA-ch52-4w7c-c8xp](https://github.com/advisories/GHSA-ch52-4w7c-c8xp) en tooling de desarrollo. No se versionan credenciales ni tokens.
-
-## Estado
-
-Admin DEV y PROD operativos; CD de ambos entornos operativo.
+El backend debe permitir por CORS el origen de cada Admin y, para las operaciones privadas, las cabeceras `Authorization`, `Content-Type` e `If-Match`; debe exponer `ETag` y `Retry-After` para que la web pueda gestionar concurrencia y límites. Los orígenes DEV y PROD se mantienen separados. `/config/runtime-config.json` no almacena credenciales ni secretos. Los guards y controles de UI complementan la autorización del backend; la API pública permanece anónima.

@@ -48,14 +48,15 @@ para comprobar que la API servida por nginx corresponde al entorno.
 
 ### CORS (backend)
 
-El backend PROD permite el origen `https://admin-donit.marfern.dev`; DEV permite `https://admin-dev.marfern.dev` en `donit-api-dev.marfern.dev`. La política CORS debe incluir la cabecera `Authorization` usada por el panel:
+El backend PROD permite el origen `https://admin-donit.marfern.dev`; DEV permite `https://admin-dev.marfern.dev` en `donit-api-dev.marfern.dev`. La política CORS debe permitir las cabeceras que usa el panel privado y exponer las que necesita para concurrencia y límites:
 
 ```
 Access-Control-Allow-Origin: https://admin-donit.marfern.dev
-Access-Control-Allow-Headers: Authorization, Content-Type
+Access-Control-Allow-Headers: Authorization, Content-Type, If-Match
+Access-Control-Expose-Headers: ETag, Retry-After
 ```
 
-Mantener la lista de orígenes explícita y separada por entorno.
+El ejemplo muestra el origen PROD; DEV usa su propio origen. Mantener la lista de orígenes explícita y separada por entorno. Las peticiones `GET /api/public/demo/**` se hacen sin `Authorization`.
 
 Cookies HttpOnly no se usan actualmente.
 
